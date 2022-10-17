@@ -8,7 +8,7 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "/home/connor/Documents/TradingStrategy/sent_and_price_strategy.py",
+            "program": "/home/connor/Documents/TradingStrategy/sent_and_rec_trends_strategy.py",
             "console": "integratedTerminal",
             "justMyCode": true
         }
