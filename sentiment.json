@@ -1,0 +1,1807 @@
+{
+    "reddit": [
+        {
+            "atTime": "2022-10-16 16:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.9098761,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 13:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9994585,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 11:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.99984,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 07:00:00",
+            "mention": 1,
+            "positiveScore": 0.9928625,
+            "negativeScore": 0,
+            "positiveMention": 1,
+            "negativeMention": 0,
+            "score": 1
+        },
+        {
+            "atTime": "2022-10-16 05:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9984773,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 04:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.9949276,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 03:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9351903,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 02:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9927394333333334,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 01:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.99685025,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-16 00:00:00",
+            "mention": 2,
+            "positiveScore": 0.92797555,
+            "negativeScore": 0,
+            "positiveMention": 2,
+            "negativeMention": 0,
+            "score": 1
+        },
+        {
+            "atTime": "2022-10-15 23:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9998228,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 21:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9925495666666667,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 20:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9662961999999999,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 18:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.9999546,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 17:00:00",
+            "mention": 4,
+            "positiveScore": 0.7093712,
+            "negativeScore": -0.9998446666666667,
+            "positiveMention": 1,
+            "negativeMention": 3,
+            "score": -0.6174767691554909
+        },
+        {
+            "atTime": "2022-10-15 16:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9999763,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 15:00:00",
+            "mention": 9,
+            "positiveScore": 0.9840464,
+            "negativeScore": -0.9837194625,
+            "positiveMention": 1,
+            "negativeMention": 8,
+            "score": -0.7777121311532365
+        },
+        {
+            "atTime": "2022-10-15 13:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.9998846,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 12:00:00",
+            "mention": 2,
+            "positiveScore": 0.9953583,
+            "negativeScore": -0.99940467,
+            "positiveMention": 1,
+            "negativeMention": 1,
+            "score": -0.002028496648902584
+        },
+        {
+            "atTime": "2022-10-15 06:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9999193,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 04:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.99974205,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 03:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.99997945,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 02:00:00",
+            "mention": 4,
+            "positiveScore": 0,
+            "negativeScore": -0.999726,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 01:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9960226666666667,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-15 00:00:00",
+            "mention": 6,
+            "positiveScore": 0.9417137,
+            "negativeScore": -0.99545265,
+            "positiveMention": 2,
+            "negativeMention": 4,
+            "score": -0.3577660787166694
+        },
+        {
+            "atTime": "2022-10-14 23:00:00",
+            "mention": 7,
+            "positiveScore": 0,
+            "negativeScore": -0.9756022333333334,
+            "positiveMention": 0,
+            "negativeMention": 6,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 22:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9999875,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 21:00:00",
+            "mention": 5,
+            "positiveScore": 0,
+            "negativeScore": -0.99048614,
+            "positiveMention": 0,
+            "negativeMention": 5,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 20:00:00",
+            "mention": 7,
+            "positiveScore": 0,
+            "negativeScore": -0.9372522857142858,
+            "positiveMention": 0,
+            "negativeMention": 7,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 19:00:00",
+            "mention": 8,
+            "positiveScore": 0,
+            "negativeScore": -0.9662956625,
+            "positiveMention": 0,
+            "negativeMention": 8,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 18:00:00",
+            "mention": 8,
+            "positiveScore": 0,
+            "negativeScore": -0.9995339285714285,
+            "positiveMention": 0,
+            "negativeMention": 7,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 17:00:00",
+            "mention": 7,
+            "positiveScore": 0,
+            "negativeScore": -0.9977697714285715,
+            "positiveMention": 0,
+            "negativeMention": 7,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 16:00:00",
+            "mention": 6,
+            "positiveScore": 0,
+            "negativeScore": -0.9947368600000001,
+            "positiveMention": 0,
+            "negativeMention": 5,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 15:00:00",
+            "mention": 5,
+            "positiveScore": 0.9688302,
+            "negativeScore": -0.9939666666666667,
+            "positiveMention": 1,
+            "negativeMention": 3,
+            "score": -0.5095437294098191
+        },
+        {
+            "atTime": "2022-10-14 14:00:00",
+            "mention": 6,
+            "positiveScore": 0,
+            "negativeScore": -0.991584,
+            "positiveMention": 0,
+            "negativeMention": 6,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 13:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9999902,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 07:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9998852,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-14 02:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9977443,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 20:00:00",
+            "mention": 6,
+            "positiveScore": 0.9845445,
+            "negativeScore": -0.999752175,
+            "positiveMention": 2,
+            "negativeMention": 4,
+            "score": -0.34012842986802977
+        },
+        {
+            "atTime": "2022-10-13 19:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.94870543,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 18:00:00",
+            "mention": 2,
+            "positiveScore": 0.9461297,
+            "negativeScore": -0.9945174,
+            "positiveMention": 1,
+            "negativeMention": 1,
+            "score": -0.024933796567134764
+        },
+        {
+            "atTime": "2022-10-13 17:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9999875,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 13:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.9994478,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 12:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.99930535,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 10:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9998266,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 09:00:00",
+            "mention": 2,
+            "positiveScore": 0.9979937,
+            "negativeScore": -0.999759,
+            "positiveMention": 1,
+            "negativeMention": 1,
+            "score": -0.0008836429053505821
+        },
+        {
+            "atTime": "2022-10-13 06:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9913628,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 02:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.915717,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-13 00:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.7245066,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 23:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9998865,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 22:00:00",
+            "mention": 2,
+            "positiveScore": 0.99585766,
+            "negativeScore": -0.99978834,
+            "positiveMention": 1,
+            "negativeMention": 1,
+            "score": -0.001969627879894568
+        },
+        {
+            "atTime": "2022-10-12 21:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.98027585,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 20:00:00",
+            "mention": 6,
+            "positiveScore": 0.9887584,
+            "negativeScore": -0.929747,
+            "positiveMention": 3,
+            "negativeMention": 2,
+            "score": 0.2293481420537062
+        },
+        {
+            "atTime": "2022-10-12 19:00:00",
+            "mention": 4,
+            "positiveScore": 0,
+            "negativeScore": -0.999606125,
+            "positiveMention": 0,
+            "negativeMention": 4,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 18:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.999777,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 17:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": 0,
+            "positiveMention": 0,
+            "negativeMention": 0,
+            "score": 0
+        },
+        {
+            "atTime": "2022-10-12 16:00:00",
+            "mention": 4,
+            "positiveScore": 0,
+            "negativeScore": -0.997600625,
+            "positiveMention": 0,
+            "negativeMention": 4,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 15:00:00",
+            "mention": 6,
+            "positiveScore": 0,
+            "negativeScore": -0.999148,
+            "positiveMention": 0,
+            "negativeMention": 6,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 14:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9997235999999999,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 11:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.999498,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 10:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.99976057,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 09:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.99426854,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 08:00:00",
+            "mention": 5,
+            "positiveScore": 0,
+            "negativeScore": -0.99931488,
+            "positiveMention": 0,
+            "negativeMention": 5,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 07:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9996015333333333,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 06:00:00",
+            "mention": 5,
+            "positiveScore": 0.902972,
+            "negativeScore": -0.9715347333333333,
+            "positiveMention": 2,
+            "negativeMention": 3,
+            "score": -0.23485835818814432
+        },
+        {
+            "atTime": "2022-10-12 05:00:00",
+            "mention": 5,
+            "positiveScore": 0,
+            "negativeScore": -0.9990738800000001,
+            "positiveMention": 0,
+            "negativeMention": 5,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 04:00:00",
+            "mention": 4,
+            "positiveScore": 0,
+            "negativeScore": -0.99982625,
+            "positiveMention": 0,
+            "negativeMention": 4,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 03:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.999961,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 02:00:00",
+            "mention": 14,
+            "positiveScore": 0,
+            "negativeScore": -0.9970144999999999,
+            "positiveMention": 0,
+            "negativeMention": 14,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 01:00:00",
+            "mention": 16,
+            "positiveScore": 0,
+            "negativeScore": -0.99837775,
+            "positiveMention": 0,
+            "negativeMention": 16,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-12 00:00:00",
+            "mention": 15,
+            "positiveScore": 0,
+            "negativeScore": -0.9818458666666667,
+            "positiveMention": 0,
+            "negativeMention": 15,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 23:00:00",
+            "mention": 6,
+            "positiveScore": 0,
+            "negativeScore": -0.9999218833333333,
+            "positiveMention": 0,
+            "negativeMention": 6,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 22:00:00",
+            "mention": 5,
+            "positiveScore": 0,
+            "negativeScore": -0.9890180000000001,
+            "positiveMention": 0,
+            "negativeMention": 5,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 21:00:00",
+            "mention": 23,
+            "positiveScore": 0,
+            "negativeScore": -0.9997585217391304,
+            "positiveMention": 0,
+            "negativeMention": 23,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 20:00:00",
+            "mention": 2,
+            "positiveScore": 0.9942372,
+            "negativeScore": -0.999948,
+            "positiveMention": 1,
+            "negativeMention": 1,
+            "score": -0.002863725996963524
+        },
+        {
+            "atTime": "2022-10-11 19:00:00",
+            "mention": 7,
+            "positiveScore": 0.9906781,
+            "negativeScore": -0.9973986666666667,
+            "positiveMention": 1,
+            "negativeMention": 6,
+            "score": -0.7159374498616149
+        },
+        {
+            "atTime": "2022-10-11 18:00:00",
+            "mention": 12,
+            "positiveScore": 0,
+            "negativeScore": -0.9988774545454546,
+            "positiveMention": 0,
+            "negativeMention": 11,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 17:00:00",
+            "mention": 8,
+            "positiveScore": 0,
+            "negativeScore": -0.99774725,
+            "positiveMention": 0,
+            "negativeMention": 8,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 14:00:00",
+            "mention": 8,
+            "positiveScore": 0.8571192,
+            "negativeScore": -0.9764192,
+            "positiveMention": 2,
+            "negativeMention": 4,
+            "score": -0.38994154217843
+        },
+        {
+            "atTime": "2022-10-11 13:00:00",
+            "mention": 2,
+            "positiveScore": 0.7200333,
+            "negativeScore": -0.9668923,
+            "positiveMention": 1,
+            "negativeMention": 1,
+            "score": -0.14633662563423072
+        },
+        {
+            "atTime": "2022-10-11 11:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": 0,
+            "positiveMention": 0,
+            "negativeMention": 0,
+            "score": 0
+        },
+        {
+            "atTime": "2022-10-11 10:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9992428,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 08:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9911084,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 07:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9999906,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 06:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.90225125,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 05:00:00",
+            "mention": 4,
+            "positiveScore": 0,
+            "negativeScore": -0.9985506,
+            "positiveMention": 0,
+            "negativeMention": 4,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 03:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9999919,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 02:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.99958675,
+            "positiveMention": 0,
+            "negativeMention": 2,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 01:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.9990683,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-11 00:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.99987435,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-10 23:00:00",
+            "mention": 1,
+            "positiveScore": 0.85077643,
+            "negativeScore": 0,
+            "positiveMention": 1,
+            "negativeMention": 0,
+            "score": 1
+        },
+        {
+            "atTime": "2022-10-10 22:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9996264,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-10 20:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.9775532,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-10 19:00:00",
+            "mention": 8,
+            "positiveScore": 0.78239745,
+            "negativeScore": -0.9984164857142857,
+            "positiveMention": 1,
+            "negativeMention": 7,
+            "score": -0.7986447167675149
+        },
+        {
+            "atTime": "2022-10-10 18:00:00",
+            "mention": 1,
+            "positiveScore": 0,
+            "negativeScore": -0.999925,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-10 17:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9979090666666667,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-10 16:00:00",
+            "mention": 2,
+            "positiveScore": 0,
+            "negativeScore": -0.994749,
+            "positiveMention": 0,
+            "negativeMention": 1,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-10 15:00:00",
+            "mention": 6,
+            "positiveScore": 0,
+            "negativeScore": -0.9598548333333333,
+            "positiveMention": 0,
+            "negativeMention": 6,
+            "score": -1
+        },
+        {
+            "atTime": "2022-10-10 14:00:00",
+            "mention": 5,
+            "positiveScore": 0.9930235,
+            "negativeScore": -0.9997127,
+            "positiveMention": 1,
+            "negativeMention": 4,
+            "score": -0.6021440283462266
+        },
+        {
+            "atTime": "2022-10-10 13:00:00",
+            "mention": 3,
+            "positiveScore": 0,
+            "negativeScore": -0.9080095333333333,
+            "positiveMention": 0,
+            "negativeMention": 3,
+            "score": -1
+        }
+    ],
+    "symbol": "AAPL",
+    "twitter": [
+        {
+            "atTime": "2022-10-16 17:00:00",
+            "mention": 123,
+            "positiveScore": 0.9470897916666666,
+            "negativeScore": -0.9564256521739131,
+            "positiveMention": 48,
+            "negativeMention": 69,
+            "score": -0.18422953822610433
+        },
+        {
+            "atTime": "2022-10-16 16:00:00",
+            "mention": 494,
+            "positiveScore": 0.9504797489539749,
+            "negativeScore": -0.9432930392156863,
+            "positiveMention": 239,
+            "negativeMention": 204,
+            "score": 0.08277687008021324
+        },
+        {
+            "atTime": "2022-10-16 15:00:00",
+            "mention": 218,
+            "positiveScore": 0.9575313513513513,
+            "negativeScore": -0.9190802352941176,
+            "positiveMention": 111,
+            "negativeMention": 85,
+            "score": 0.15272759612120526
+        },
+        {
+            "atTime": "2022-10-16 14:00:00",
+            "mention": 141,
+            "positiveScore": 0.9249677222222222,
+            "negativeScore": -0.9530808333333334,
+            "positiveMention": 54,
+            "negativeMention": 72,
+            "score": -0.15748967591545043
+        },
+        {
+            "atTime": "2022-10-16 13:00:00",
+            "mention": 120,
+            "positiveScore": 0.9325018260869564,
+            "negativeScore": -0.9595725373134328,
+            "positiveMention": 46,
+            "negativeMention": 67,
+            "score": -0.19961736952482537
+        },
+        {
+            "atTime": "2022-10-16 12:00:00",
+            "mention": 51,
+            "positiveScore": 0.9932485,
+            "negativeScore": -0.97184728125,
+            "positiveMention": 18,
+            "negativeMention": 32,
+            "score": -0.2699324544088392
+        },
+        {
+            "atTime": "2022-10-16 11:00:00",
+            "mention": 85,
+            "positiveScore": 0.9263664285714287,
+            "negativeScore": -0.9313267391304348,
+            "positiveMention": 35,
+            "negativeMention": 46,
+            "score": -0.1384224206958307
+        },
+        {
+            "atTime": "2022-10-16 10:00:00",
+            "mention": 87,
+            "positiveScore": 0.9521498918918919,
+            "negativeScore": -0.9617456744186046,
+            "positiveMention": 37,
+            "negativeMention": 43,
+            "score": -0.07998366773689909
+        },
+        {
+            "atTime": "2022-10-16 09:00:00",
+            "mention": 97,
+            "positiveScore": 0.9758533333333334,
+            "negativeScore": -0.9421380952380952,
+            "positiveMention": 48,
+            "negativeMention": 42,
+            "score": 0.08414646509300464
+        },
+        {
+            "atTime": "2022-10-16 08:00:00",
+            "mention": 135,
+            "positiveScore": 0.9612351153846154,
+            "negativeScore": -0.9522644,
+            "positiveMention": 52,
+            "negativeMention": 75,
+            "score": -0.1765641503773153
+        },
+        {
+            "atTime": "2022-10-16 07:00:00",
+            "mention": 95,
+            "positiveScore": 0.9486621749999999,
+            "negativeScore": -0.9274104,
+            "positiveMention": 40,
+            "negativeMention": 50,
+            "score": -0.09990906105099298
+        },
+        {
+            "atTime": "2022-10-16 06:00:00",
+            "mention": 44,
+            "positiveScore": 0.9249377000000001,
+            "negativeScore": -0.9525275666666667,
+            "positiveMention": 10,
+            "negativeMention": 30,
+            "score": -0.5109410645875169
+        },
+        {
+            "atTime": "2022-10-16 05:00:00",
+            "mention": 42,
+            "positiveScore": 0.9764428333333334,
+            "negativeScore": -0.9862297666666666,
+            "positiveMention": 6,
+            "negativeMention": 30,
+            "score": -0.6694277843057873
+        },
+        {
+            "atTime": "2022-10-16 04:00:00",
+            "mention": 40,
+            "positiveScore": 0.946192090909091,
+            "negativeScore": -0.98251648,
+            "positiveMention": 11,
+            "negativeMention": 25,
+            "score": -0.40475791029859726
+        },
+        {
+            "atTime": "2022-10-16 03:00:00",
+            "mention": 46,
+            "positiveScore": 0.9383066315789474,
+            "negativeScore": -0.96961975,
+            "positiveMention": 19,
+            "negativeMention": 24,
+            "score": -0.13243844695817622
+        },
+        {
+            "atTime": "2022-10-16 02:00:00",
+            "mention": 78,
+            "positiveScore": 0.9222142857142857,
+            "negativeScore": -0.921742,
+            "positiveMention": 21,
+            "negativeMention": 50,
+            "score": -0.40823728564968165
+        },
+        {
+            "atTime": "2022-10-16 01:00:00",
+            "mention": 73,
+            "positiveScore": 0.9366549393939394,
+            "negativeScore": -0.8927245789473683,
+            "positiveMention": 33,
+            "negativeMention": 38,
+            "score": -0.046487346973917466
+        },
+        {
+            "atTime": "2022-10-16 00:00:00",
+            "mention": 63,
+            "positiveScore": 0.9533934,
+            "negativeScore": -0.9700558095238095,
+            "positiveMention": 15,
+            "negativeMention": 42,
+            "score": -0.48037580269840563
+        },
+        {
+            "atTime": "2022-10-15 23:00:00",
+            "mention": 75,
+            "positiveScore": 0.9624103333333333,
+            "negativeScore": -0.9449603333333333,
+            "positiveMention": 9,
+            "negativeMention": 60,
+            "score": -0.7349515286367836
+        },
+        {
+            "atTime": "2022-10-15 22:00:00",
+            "mention": 50,
+            "positiveScore": 0.9825025000000001,
+            "negativeScore": -0.93787812,
+            "positiveMention": 20,
+            "negativeMention": 25,
+            "score": -0.08810132342613244
+        },
+        {
+            "atTime": "2022-10-15 21:00:00",
+            "mention": 77,
+            "positiveScore": 0.92072378125,
+            "negativeScore": -0.9508850000000001,
+            "positiveMention": 32,
+            "negativeMention": 42,
+            "score": -0.15092160007133112
+        },
+        {
+            "atTime": "2022-10-15 20:00:00",
+            "mention": 70,
+            "positiveScore": 0.961530375,
+            "negativeScore": -0.9298524,
+            "positiveMention": 24,
+            "negativeMention": 35,
+            "score": -0.17022364150392538
+        },
+        {
+            "atTime": "2022-10-15 19:00:00",
+            "mention": 52,
+            "positiveScore": 0.9532615294117646,
+            "negativeScore": -0.9657009999999999,
+            "positiveMention": 17,
+            "negativeMention": 30,
+            "score": -0.282571486983624
+        },
+        {
+            "atTime": "2022-10-15 18:00:00",
+            "mention": 154,
+            "positiveScore": 0.9369369032258065,
+            "negativeScore": -0.9785978701298701,
+            "positiveMention": 62,
+            "negativeMention": 77,
+            "score": -0.12935906206049294
+        },
+        {
+            "atTime": "2022-10-15 17:00:00",
+            "mention": 125,
+            "positiveScore": 0.9603945957446808,
+            "negativeScore": -0.9479564375,
+            "positiveMention": 47,
+            "negativeMention": 64,
+            "score": -0.14678192122736408
+        },
+        {
+            "atTime": "2022-10-15 16:00:00",
+            "mention": 282,
+            "positiveScore": 0.9596012213740458,
+            "negativeScore": -0.9511199173553719,
+            "positiveMention": 131,
+            "negativeMention": 121,
+            "score": 0.044113566795284574
+        },
+        {
+            "atTime": "2022-10-15 15:00:00",
+            "mention": 210,
+            "positiveScore": 0.9292433783783783,
+            "negativeScore": -0.9440662393162392,
+            "positiveMention": 74,
+            "negativeMention": 117,
+            "score": -0.23262914758952916
+        },
+        {
+            "atTime": "2022-10-15 14:00:00",
+            "mention": 120,
+            "positiveScore": 0.9269514166666667,
+            "negativeScore": -0.9543798780487805,
+            "positiveMention": 24,
+            "negativeMention": 82,
+            "score": -0.5573032944983654
+        },
+        {
+            "atTime": "2022-10-15 13:00:00",
+            "mention": 115,
+            "positiveScore": 0.9628458571428571,
+            "negativeScore": -0.9437156470588235,
+            "positiveMention": 28,
+            "negativeMention": 85,
+            "score": -0.4969059070712738
+        },
+        {
+            "atTime": "2022-10-15 12:00:00",
+            "mention": 102,
+            "positiveScore": 0.9522092340425531,
+            "negativeScore": -0.9571248653846154,
+            "positiveMention": 47,
+            "negativeMention": 52,
+            "score": -0.053072676201122326
+        },
+        {
+            "atTime": "2022-10-15 11:00:00",
+            "mention": 90,
+            "positiveScore": 0.9407114871794872,
+            "negativeScore": -0.96505325,
+            "positiveMention": 39,
+            "negativeMention": 48,
+            "score": -0.11606761493127409
+        },
+        {
+            "atTime": "2022-10-15 10:00:00",
+            "mention": 115,
+            "positiveScore": 0.9455959024390245,
+            "negativeScore": -0.9743008955223881,
+            "positiveMention": 41,
+            "negativeMention": 67,
+            "score": -0.254775026412913
+        },
+        {
+            "atTime": "2022-10-15 09:00:00",
+            "mention": 100,
+            "positiveScore": 0.9316612,
+            "negativeScore": -0.9701985915492958,
+            "positiveMention": 20,
+            "negativeMention": 71,
+            "score": -0.5741820442316085
+        },
+        {
+            "atTime": "2022-10-15 08:00:00",
+            "mention": 58,
+            "positiveScore": 0.9736385000000001,
+            "negativeScore": -0.9891044666666667,
+            "positiveMention": 20,
+            "negativeMention": 30,
+            "score": -0.2075526782455767
+        },
+        {
+            "atTime": "2022-10-15 07:00:00",
+            "mention": 91,
+            "positiveScore": 0.8976319,
+            "negativeScore": -0.978811935483871,
+            "positiveMention": 30,
+            "negativeMention": 31,
+            "score": -0.05961386766725113
+        },
+        {
+            "atTime": "2022-10-15 06:00:00",
+            "mention": 91,
+            "positiveScore": 0.8780145769230769,
+            "negativeScore": -0.9790684000000001,
+            "positiveMention": 26,
+            "negativeMention": 25,
+            "score": -0.0348446865832976
+        },
+        {
+            "atTime": "2022-10-15 05:00:00",
+            "mention": 34,
+            "positiveScore": 0.9451031111111112,
+            "negativeScore": -0.9826243478260869,
+            "positiveMention": 9,
+            "negativeMention": 23,
+            "score": -0.45310555859316926
+        },
+        {
+            "atTime": "2022-10-15 04:00:00",
+            "mention": 117,
+            "positiveScore": 0.9166172,
+            "negativeScore": -0.9754287868852459,
+            "positiveMention": 50,
+            "negativeMention": 61,
+            "score": -0.12978291424707944
+        },
+        {
+            "atTime": "2022-10-15 03:00:00",
+            "mention": 124,
+            "positiveScore": 0.9299409259259259,
+            "negativeScore": -0.979565078125,
+            "positiveMention": 54,
+            "negativeMention": 64,
+            "score": -0.1104903751008279
+        },
+        {
+            "atTime": "2022-10-15 02:00:00",
+            "mention": 80,
+            "positiveScore": 0.9174742272727272,
+            "negativeScore": -0.9549419090909091,
+            "positiveMention": 22,
+            "negativeMention": 55,
+            "score": -0.44476750399326126
+        },
+        {
+            "atTime": "2022-10-15 01:00:00",
+            "mention": 120,
+            "positiveScore": 0.964634126984127,
+            "negativeScore": -0.9760306545454546,
+            "positiveMention": 63,
+            "negativeMention": 55,
+            "score": 0.061948787716975616
+        },
+        {
+            "atTime": "2022-10-15 00:00:00",
+            "mention": 253,
+            "positiveScore": 0.9460701162790698,
+            "negativeScore": -0.9481721678321677,
+            "positiveMention": 86,
+            "negativeMention": 143,
+            "score": -0.24994896304758704
+        },
+        {
+            "atTime": "2022-10-14 23:00:00",
+            "mention": 323,
+            "positiveScore": 0.9535089719626167,
+            "negativeScore": -0.97323,
+            "positiveMention": 107,
+            "negativeMention": 191,
+            "score": -0.29127426575841353
+        },
+        {
+            "atTime": "2022-10-14 22:00:00",
+            "mention": 204,
+            "positiveScore": 0.9305171052631579,
+            "negativeScore": -0.9853741401273886,
+            "positiveMention": 38,
+            "negativeMention": 157,
+            "score": -0.6279172964346263
+        },
+        {
+            "atTime": "2022-10-14 21:00:00",
+            "mention": 247,
+            "positiveScore": 0.9448993511450381,
+            "negativeScore": -0.9469262105263158,
+            "positiveMention": 131,
+            "negativeMention": 95,
+            "score": 0.15824766472487425
+        },
+        {
+            "atTime": "2022-10-14 20:00:00",
+            "mention": 279,
+            "positiveScore": 0.9322828253968254,
+            "negativeScore": -0.9561128682170543,
+            "positiveMention": 126,
+            "negativeMention": 129,
+            "score": -0.024380286294626748
+        },
+        {
+            "atTime": "2022-10-14 19:00:00",
+            "mention": 451,
+            "positiveScore": 0.9445809392265194,
+            "negativeScore": -0.894363679245283,
+            "positiveMention": 181,
+            "negativeMention": 212,
+            "score": -0.051684084484679586
+        },
+        {
+            "atTime": "2022-10-14 18:00:00",
+            "mention": 486,
+            "positiveScore": 0.939770985915493,
+            "negativeScore": -0.9049603636363637,
+            "positiveMention": 142,
+            "negativeMention": 275,
+            "score": -0.30189150953784866
+        },
+        {
+            "atTime": "2022-10-14 17:00:00",
+            "mention": 403,
+            "positiveScore": 0.9295236986301371,
+            "negativeScore": -0.88806085,
+            "positiveMention": 146,
+            "negativeMention": 200,
+            "score": -0.13373342997918783
+        },
+        {
+            "atTime": "2022-10-14 16:00:00",
+            "mention": 444,
+            "positiveScore": 0.9201846086956522,
+            "negativeScore": -0.8761889818181817,
+            "positiveMention": 115,
+            "negativeMention": 275,
+            "score": -0.3896804597356428
+        },
+        {
+            "atTime": "2022-10-14 15:00:00",
+            "mention": 393,
+            "positiveScore": 0.9490763586956522,
+            "negativeScore": -0.9085256474820144,
+            "positiveMention": 92,
+            "negativeMention": 278,
+            "score": -0.4862086577449963
+        },
+        {
+            "atTime": "2022-10-14 14:00:00",
+            "mention": 445,
+            "positiveScore": 0.9630569411764707,
+            "negativeScore": -0.9094308794788274,
+            "positiveMention": 85,
+            "negativeMention": 307,
+            "score": -0.5465521164746258
+        },
+        {
+            "atTime": "2022-10-14 13:00:00",
+            "mention": 527,
+            "positiveScore": 0.9400835877862596,
+            "negativeScore": -0.9028013173652695,
+            "positiveMention": 131,
+            "negativeMention": 334,
+            "score": -0.42003843351870374
+        },
+        {
+            "atTime": "2022-10-14 12:00:00",
+            "mention": 400,
+            "positiveScore": 0.9297458762886598,
+            "negativeScore": -0.9021810188679245,
+            "positiveMention": 97,
+            "negativeMention": 265,
+            "score": -0.4521992306947521
+        },
+        {
+            "atTime": "2022-10-14 11:00:00",
+            "mention": 237,
+            "positiveScore": 0.9297191785714285,
+            "negativeScore": -0.8847961392405063,
+            "positiveMention": 56,
+            "negativeMention": 158,
+            "score": -0.45727390903081294
+        },
+        {
+            "atTime": "2022-10-14 10:00:00",
+            "mention": 164,
+            "positiveScore": 0.9292178965517242,
+            "negativeScore": -0.890701182795699,
+            "positiveMention": 58,
+            "negativeMention": 93,
+            "score": -0.2116624308687888
+        },
+        {
+            "atTime": "2022-10-14 09:00:00",
+            "mention": 90,
+            "positiveScore": 0.9612897916666667,
+            "negativeScore": -0.9476678947368422,
+            "positiveMention": 48,
+            "negativeMention": 38,
+            "score": 0.12331252954081329
+        },
+        {
+            "atTime": "2022-10-14 08:00:00",
+            "mention": 201,
+            "positiveScore": 0.9531094252873563,
+            "negativeScore": -0.9471788095238095,
+            "positiveMention": 87,
+            "negativeMention": 84,
+            "score": 0.020663631528461294
+        },
+        {
+            "atTime": "2022-10-14 07:00:00",
+            "mention": 224,
+            "positiveScore": 0.9444834375000001,
+            "negativeScore": -0.9472604395604395,
+            "positiveMention": 96,
+            "negativeMention": 91,
+            "score": 0.025271001013110656
+        },
+        {
+            "atTime": "2022-10-14 06:00:00",
+            "mention": 110,
+            "positiveScore": 0.9080553673469387,
+            "negativeScore": -0.9533387826086956,
+            "positiveMention": 49,
+            "negativeMention": 46,
+            "score": 0.007256834843120965
+        },
+        {
+            "atTime": "2022-10-14 05:00:00",
+            "mention": 139,
+            "positiveScore": 0.9420584333333333,
+            "negativeScore": -0.9269811230769232,
+            "positiveMention": 60,
+            "negativeMention": 65,
+            "score": -0.03194343139301957
+        },
+        {
+            "atTime": "2022-10-14 04:00:00",
+            "mention": 107,
+            "positiveScore": 0.9327025357142856,
+            "negativeScore": -0.9593970317460317,
+            "positiveMention": 28,
+            "negativeMention": 63,
+            "score": -0.39657186299023445
+        },
+        {
+            "atTime": "2022-10-14 03:00:00",
+            "mention": 120,
+            "positiveScore": 0.9685863793103449,
+            "negativeScore": -0.9333239333333334,
+            "positiveMention": 58,
+            "negativeMention": 45,
+            "score": 0.14441618940991083
+        },
+        {
+            "atTime": "2022-10-14 02:00:00",
+            "mention": 174,
+            "positiveScore": 0.9374807936507936,
+            "negativeScore": -0.9427448837209302,
+            "positiveMention": 63,
+            "negativeMention": 86,
+            "score": -0.15709423647585743
+        },
+        {
+            "atTime": "2022-10-14 01:00:00",
+            "mention": 103,
+            "positiveScore": 0.8927312399999999,
+            "negativeScore": -0.933587625,
+            "positiveMention": 25,
+            "negativeMention": 56,
+            "score": -0.4016481519879278
+        },
+        {
+            "atTime": "2022-10-14 00:00:00",
+            "mention": 121,
+            "positiveScore": 0.8914713846153847,
+            "negativeScore": -0.95989792,
+            "positiveMention": 39,
+            "negativeMention": 50,
+            "score": -0.15982536972156877
+        },
+        {
+            "atTime": "2022-10-13 23:00:00",
+            "mention": 88,
+            "positiveScore": 0.9090035333333333,
+            "negativeScore": -0.9507442,
+            "positiveMention": 15,
+            "negativeMention": 50,
+            "score": -0.5542079912917396
+        },
+        {
+            "atTime": "2022-10-13 22:00:00",
+            "mention": 136,
+            "positiveScore": 0.9231156097560976,
+            "negativeScore": -0.9553847297297298,
+            "positiveMention": 41,
+            "negativeMention": 74,
+            "score": -0.3026428099147819
+        },
+        {
+            "atTime": "2022-10-13 21:00:00",
+            "mention": 128,
+            "positiveScore": 0.963875976744186,
+            "negativeScore": -0.9600789189189189,
+            "positiveMention": 43,
+            "negativeMention": 74,
+            "score": -0.2631212850470121
+        },
+        {
+            "atTime": "2022-10-13 20:00:00",
+            "mention": 298,
+            "positiveScore": 0.9608526241134752,
+            "negativeScore": -0.9394008955223881,
+            "positiveMention": 141,
+            "negativeMention": 134,
+            "score": 0.036732867324655784
+        },
+        {
+            "atTime": "2022-10-13 19:00:00",
+            "mention": 555,
+            "positiveScore": 0.9593091203703703,
+            "negativeScore": -0.9692443793103448,
+            "positiveMention": 216,
+            "negativeMention": 290,
+            "score": -0.1512827456968135
+        },
+        {
+            "atTime": "2022-10-13 18:00:00",
+            "mention": 466,
+            "positiveScore": 0.9652781434599156,
+            "negativeScore": -0.9729269886363636,
+            "positiveMention": 237,
+            "negativeMention": 176,
+            "score": 0.1438372422698485
+        },
+        {
+            "atTime": "2022-10-13 17:00:00",
+            "mention": 583,
+            "positiveScore": 0.9520568803418803,
+            "negativeScore": -0.9620658075601374,
+            "positiveMention": 234,
+            "negativeMention": 291,
+            "score": -0.11373584797273735
+        },
+        {
+            "atTime": "2022-10-13 16:00:00",
+            "mention": 631,
+            "positiveScore": 0.9664259278350515,
+            "negativeScore": -0.9567619321148825,
+            "positiveMention": 194,
+            "negativeMention": 383,
+            "score": -0.32306308897146907
+        },
+        {
+            "atTime": "2022-10-13 15:00:00",
+            "mention": 381,
+            "positiveScore": 0.9549438926174497,
+            "negativeScore": -0.9400167512690355,
+            "positiveMention": 149,
+            "negativeMention": 197,
+            "score": -0.13099419140578214
+        },
+        {
+            "atTime": "2022-10-13 14:00:00",
+            "mention": 686,
+            "positiveScore": 0.9377941761363636,
+            "negativeScore": -0.9509076595744681,
+            "positiveMention": 352,
+            "negativeMention": 235,
+            "score": 0.19264204494904272
+        },
+        {
+            "atTime": "2022-10-13 13:00:00",
+            "mention": 448,
+            "positiveScore": 0.9734413475177306,
+            "negativeScore": -0.966328671875,
+            "positiveMention": 141,
+            "negativeMention": 256,
+            "score": -0.28630988876555996
+        },
+        {
+            "atTime": "2022-10-13 12:00:00",
+            "mention": 269,
+            "positiveScore": 0.9715304869565218,
+            "negativeScore": -0.9708891304347825,
+            "positiveMention": 115,
+            "negativeMention": 115,
+            "score": 0.00033018433092253636
+        },
+        {
+            "atTime": "2022-10-13 11:00:00",
+            "mention": 254,
+            "positiveScore": 0.9710945161290322,
+            "negativeScore": -0.9682118749999999,
+            "positiveMention": 124,
+            "negativeMention": 112,
+            "score": 0.052329931404299077
+        },
+        {
+            "atTime": "2022-10-13 10:00:00",
+            "mention": 286,
+            "positiveScore": 0.966645294117647,
+            "negativeScore": -0.9465870093457943,
+            "positiveMention": 153,
+            "negativeMention": 107,
+            "score": 0.18706008478798228
+        },
+        {
+            "atTime": "2022-10-13 09:00:00",
+            "mention": 239,
+            "positiveScore": 0.9657732575757575,
+            "negativeScore": -0.975104367816092,
+            "positiveMention": 132,
+            "negativeMention": 87,
+            "score": 0.2008702117102255
+        },
+        {
+            "atTime": "2022-10-13 08:00:00",
+            "mention": 226,
+            "positiveScore": 0.9450948780487806,
+            "negativeScore": -0.9339123958333334,
+            "positiveMention": 82,
+            "negativeMention": 96,
+            "score": -0.07273445937703797
+        },
+        {
+            "atTime": "2022-10-13 07:00:00",
+            "mention": 93,
+            "positiveScore": 0.8910268421052632,
+            "negativeScore": -0.9828433333333333,
+            "positiveMention": 38,
+            "negativeMention": 33,
+            "score": 0.02149839688593869
+        },
+        {
+            "atTime": "2022-10-13 06:00:00",
+            "mention": 64,
+            "positiveScore": 0.921027925925926,
+            "negativeScore": -0.9603752758620689,
+            "positiveMention": 27,
+            "negativeMention": 29,
+            "score": -0.05658585217216443
+        },
+        {
+            "atTime": "2022-10-13 05:00:00",
+            "mention": 87,
+            "positiveScore": 0.9384203658536585,
+            "negativeScore": -0.9738977619047618,
+            "positiveMention": 41,
+            "negativeMention": 42,
+            "score": -0.03059339126229968
+        },
+        {
+            "atTime": "2022-10-13 04:00:00",
+            "mention": 172,
+            "positiveScore": 0.9514652380952381,
+            "negativeScore": -0.9543022340425531,
+            "positiveMention": 63,
+            "negativeMention": 94,
+            "score": -0.19888240784696115
+        },
+        {
+            "atTime": "2022-10-13 03:00:00",
+            "mention": 83,
+            "positiveScore": 0.9545758,
+            "negativeScore": -0.9720859574468085,
+            "positiveMention": 20,
+            "negativeMention": 47,
+            "score": -0.4105697173966429
+        },
+        {
+            "atTime": "2022-10-13 02:00:00",
+            "mention": 220,
+            "positiveScore": 0.9587640697674419,
+            "negativeScore": -0.9613481132075472,
+            "positiveMention": 86,
+            "negativeMention": 106,
+            "score": -0.105497654789812
+        },
+        {
+            "atTime": "2022-10-13 01:00:00",
+            "mention": 167,
+            "positiveScore": 0.9330592127659575,
+            "negativeScore": -0.9813136082474228,
+            "positiveMention": 47,
+            "negativeMention": 97,
+            "score": -0.3691973018961869
+        },
+        {
+            "atTime": "2022-10-13 00:00:00",
+            "mention": 120,
+            "positiveScore": 0.9574709411764706,
+            "negativeScore": -0.9814173239436619,
+            "positiveMention": 34,
+            "negativeMention": 71,
+            "score": -0.36315105402335146
+        },
+        {
+            "atTime": "2022-10-12 23:00:00",
+            "mention": 137,
+            "positiveScore": 0.9044018749999999,
+            "negativeScore": -0.9631629411764705,
+            "positiveMention": 40,
+            "negativeMention": 85,
+            "score": -0.3870795377268443
+        },
+        {
+            "atTime": "2022-10-12 22:00:00",
+            "mention": 95,
+            "positiveScore": 0.9445711904761905,
+            "negativeScore": -0.962965,
+            "positiveMention": 21,
+            "negativeMention": 66,
+            "score": -0.5242692361954313
+        },
+        {
+            "atTime": "2022-10-12 21:00:00",
+            "mention": 131,
+            "positiveScore": 0.9303241860465117,
+            "negativeScore": -0.9428878260869564,
+            "positiveMention": 43,
+            "negativeMention": 69,
+            "score": -0.23847855386091416
+        },
+        {
+            "atTime": "2022-10-12 20:00:00",
+            "mention": 283,
+            "positiveScore": 0.950770506329114,
+            "negativeScore": -0.936450303030303,
+            "positiveMention": 79,
+            "negativeMention": 165,
+            "score": -0.3457958463351382
+        },
+        {
+            "atTime": "2022-10-12 19:00:00",
+            "mention": 289,
+            "positiveScore": 0.8864126966292135,
+            "negativeScore": -0.9624706329113923,
+            "positiveMention": 89,
+            "negativeMention": 158,
+            "score": -0.31684830548730086
+        },
+        {
+            "atTime": "2022-10-12 18:00:00",
+            "mention": 336,
+            "positiveScore": 0.9373244444444444,
+            "negativeScore": -0.9640758682634731,
+            "positiveMention": 126,
+            "negativeMention": 167,
+            "score": -0.1536984749925252
+        },
+        {
+            "atTime": "2022-10-12 17:00:00",
+            "mention": 408,
+            "positiveScore": 0.9300059893048129,
+            "negativeScore": -0.9674093785310734,
+            "positiveMention": 187,
+            "negativeMention": 177,
+            "score": 0.0077639217971888965
+        },
+        {
+            "atTime": "2022-10-12 16:00:00",
+            "mention": 381,
+            "positiveScore": 0.9343143229166667,
+            "negativeScore": -0.9683822077922078,
+            "positiveMention": 192,
+            "negativeMention": 154,
+            "score": 0.09210265055732962
+        },
+        {
+            "atTime": "2022-10-12 15:00:00",
+            "mention": 313,
+            "positiveScore": 0.9491013333333334,
+            "negativeScore": -0.9598174347826087,
+            "positiveMention": 165,
+            "negativeMention": 115,
+            "score": 0.17313128129380873
+        },
+        {
+            "atTime": "2022-10-12 14:00:00",
+            "mention": 562,
+            "positiveScore": 0.9415300432900433,
+            "negativeScore": -0.9563339694656489,
+            "positiveMention": 231,
+            "negativeMention": 262,
+            "score": -0.07064598290954015
+        }
+    ]
+}
