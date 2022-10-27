@@ -1,0 +1,13 @@
+ticker = 'TSLA'
+interval = 'D' # less than a day means only a month of data
+transaction_fee = 0.01
+starting_money = 10000
+percent_change = 1.20
+pct_change_min = 1.01
+pct_change_max = 1.40
+sell_threshold = 80
+min_sell = 60
+max_sell = 95
+buy_threshold = 20
+min_buy = 5
+max_buy = 40

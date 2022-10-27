@@ -10,7 +10,7 @@ import date_range as dr
 
 
 # initialize the data frame that will be used to store the scores for each ticker
-df = pd.DataFrame(columns=['ticker', 'trend score', 'sentiment score', 'average score'])
+df = pd.DataFrame(columns=['ticker', 'trend score', 'sentiment score'])
 
 # initialize the Finnhub API client
 finnhub_client = fh.Client(api_key=config.API_KEY)
@@ -103,7 +103,7 @@ def save_all_scores():
             trend_score = get_trend_score(config.ticker_list[i])
             api.check_limit()
             sentiment_score = get_sentiment_score(config.ticker_list[i])
-            df.loc[i] = [config.ticker_list[i], trend_score, sentiment_score, None]
+            df.loc[i] = [config.ticker_list[i], trend_score, sentiment_score]
 
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -111,9 +111,7 @@ def write_scores_to_csv():
     df.to_csv('scores.csv', index=False)
 
 def sort_top_scores():
-    # add the average score to the data frame and sort the data frame by the average score
-    df['average score'] = df[['trend score', 'sentiment score']].mean(axis=1)
-    df.sort_values(by=['average score'], inplace=True, ascending=False)
+    df.sort_values(by=['sentiment score'], inplace=True, ascending=False)
 
 save_all_scores()
 sort_top_scores()
