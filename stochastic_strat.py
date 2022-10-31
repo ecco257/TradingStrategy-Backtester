@@ -1,19 +1,13 @@
 import config
 import finnhub as fh
 import pandas as pd
-import json
 import date_range as dr
 import stochastic_config as sc
 import streamlit as st
 from plotly import graph_objs as go
 import optuna
 
-'''
-this strategy uses the stochastic oscillator to decide when to buy and sell stocks
-'''
-
 st.title('Stochastic Oscillator Strategy')
-
 
 # initialize the Finnhub API client
 finnhub_client = fh.Client(api_key=config.API_KEY)
