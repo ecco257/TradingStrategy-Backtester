@@ -1,9 +1,11 @@
-ticker = 'META'
+ticker = 'AMZN'
 interval = 'D' # less than a day means only a month of data, valid options are '1' '5' '15' '30' '60' 'D' 'W' 'M'
 transaction_fee = 0.02 # 2% transaction fee default
 starting_money = 10000 # $10,000 default
 sell_threshold = 80 # default 80
 buy_threshold = 20 # default 20
+rsi_buy_threshold = 30 # default 30
+rsi_sell_threshold = 70 # default 70
 buy_skips = 0 # default 3
 sell_skips = 0 # default 3
 optimize_params = False # default True
