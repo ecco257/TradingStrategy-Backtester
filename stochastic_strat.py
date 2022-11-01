@@ -2,7 +2,7 @@ import config
 import finnhub as fh
 import pandas as pd
 import date_range as dr
-import stochastic_config as sc
+import sim_config as sc
 import streamlit as st
 from plotly import graph_objs as go
 import optuna
