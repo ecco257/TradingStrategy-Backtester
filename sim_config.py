@@ -1,4 +1,4 @@
-ticker = 'META'
+ticker = 'AAPL'
 interval = 'D' # less than a day means only a month of data, valid options are '1' '5' '15' '30' '60' 'D' 'W' 'M'
 transaction_fee = 0.02 # 2% transaction fee default
 starting_money = 10000 # $10,000 default
