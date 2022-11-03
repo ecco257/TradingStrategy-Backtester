@@ -6,7 +6,7 @@ import time
 # initialize the to and from dates based on the delta_time specified in config.py
 to_date_unix = int(time.time())
 
-from_date_unix = to_date_unix - config.delta_time * 24 * 60 * 60
+from_date_unix = to_date_unix - int(config.delta_time * 24 * 60 * 60)
 
 def unix_to_date(unix):
     return dt.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S')

@@ -184,19 +184,28 @@ def get_buy_and_sell_points_adx(price_data, buy_thres, sell_thres):
     return df
 
 # use stochastic to determine if the price is trending
-def get_buy_and_sell_points_stoch(price_data, buy_thres, sell_thres):
+def get_buy_and_sell_points_stoch(price_data, buy_thres, sell_thres, change_consec, change_diff):
     # initialize the data frame that will be used to store the time stamps to buy or sell the ticker and whether it is a 
     # buy or sell
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
     # initially everything is a hold
+    prev_price = 0
+    prev_buy = False
+    prev_sell = False
     for i in range(0, len(price_data['t'])):
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
     for i in range(1, len(price_data['t'])):
         # if the stochastic oscillator is below the buy threshold and the previous value was above the buy threshold, buy
-        if price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+        if (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'buy'
-        elif price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+            prev_price = price_data['c'][i]
+            prev_buy = True
+            prev_sell = False
+        elif (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'sell'
+            prev_price = price_data['c'][i]
+            prev_buy = False
+            prev_sell = True
     return df
 
 # use bollinger bands to determine if the price is trending
@@ -276,18 +285,23 @@ def simulate_buying_and_selling(df):
             money += num_stocks*df['price'][i]
             num_stocks = 0
     return money
-        
-price_data = get_crypto_price_data(sc.crypto, sc.interval)
-#price_data = get_price_data(sc.ticker, sc.interval)
+
+if sc.use_crypto:
+    price_data = get_crypto_price_data(sc.crypto, sc.interval)
+else:
+    price_data = get_price_data(sc.ticker, sc.interval)
+
 indicator_data = add_all_indicators(price_data)
 
 # optimize stochastic parameters with optuna
 def stoch_objective(trial, indicator_data):
     buy_thres = trial.suggest_float('buy_thres', 0, 100)
     sell_thres = trial.suggest_float('sell_thres', 0, 100)
-    stoch_range = trial.suggest_int('stoch_range', 2, 30)
+    stoch_range = trial.suggest_int('stoch_range', 2, int(len(indicator_data['t'])/10))
+    change_consec = trial.suggest_float('change_consec', 1, 1.1)
+    change_diff = trial.suggest_float('change_diff', 1, 1.1)
     indicator_data = add_stochastic_data(indicator_data, stoch_range)
-    df = get_buy_and_sell_points_stoch(indicator_data, buy_thres, sell_thres)
+    df = get_buy_and_sell_points_stoch(indicator_data, buy_thres, sell_thres, change_consec, change_diff)
     profit = simulate_buying_and_selling(df)
     return profit
 
@@ -303,7 +317,7 @@ def adx_objective(trial, indicator_data):
 def bb_objective(trial, indicator_data):
     bollinger_buy_gap = trial.suggest_float('bollinger_buy_gap', 1, 2)
     bollinger_sell_gap = trial.suggest_float('bollinger_sell_gap', 1, 2)
-    bb_range = trial.suggest_int('bb_range', 2, 30)
+    bb_range = trial.suggest_int('bb_range', 2, int(len(indicator_data['t'])/10))
     change_consec = trial.suggest_float('change_consec', 1, 2)
     change_diff = trial.suggest_float('change_diff', 1, 2)
     indicator_data = add_bollinger_bands_data(indicator_data, bb_range)
@@ -312,23 +326,23 @@ def bb_objective(trial, indicator_data):
     return profit
 
 if sc.optimize_params:
-    #stoch_study = optuna.create_study(direction='maximize')
-    #stoch_study.optimize(lambda trial: stoch_objective(trial, indicator_data), n_trials=sc.optimization_depth)
-    #indicator_data = add_stochastic_data(indicator_data, stoch_study.best_params['stoch_range'])
-    #df1 = get_buy_and_sell_points_stoch(indicator_data, stoch_study.best_params['buy_thres'], stoch_study.best_params['sell_thres'])
+    stoch_study = optuna.create_study(direction='maximize')
+    stoch_study.optimize(lambda trial: stoch_objective(trial, indicator_data), n_trials=sc.optimization_depth)
+    indicator_data = add_stochastic_data(indicator_data, stoch_study.best_params['stoch_range'])
+    df1 = get_buy_and_sell_points_stoch(indicator_data, stoch_study.best_params['buy_thres'], stoch_study.best_params['sell_thres'], stoch_study.best_params['change_consec'], stoch_study.best_params['change_diff'])
     #adx_study = optuna.create_study(direction='maximize')
     #adx_study.optimize(lambda trial: adx_objective(trial, indicator_data), n_trials=sc.optimization_depth)
     #indicator_data = add_adx_data(indicator_data, adx_study.best_params['adx_range'])
     #df2 = get_buy_and_sell_points_adx(indicator_data, adx_study.best_params['buy_thres'], adx_study.best_params['sell_thres'])
-    bb_study = optuna.create_study(direction='maximize')
-    bb_study.optimize(lambda trial: bb_objective(trial, indicator_data), n_trials=sc.optimization_depth)
-    indicator_data = add_bollinger_bands_data(indicator_data, bb_study.best_params['bb_range'])
-    df3 = get_buy_and_sell_points_bollinger(indicator_data, bb_study.best_params['bollinger_buy_gap'], bb_study.best_params['bollinger_sell_gap'], bb_study.best_params['bb_range'], bb_study.best_params['change_consec'], bb_study.best_params['change_diff'])
+    #bb_study = optuna.create_study(direction='maximize')
+    #bb_study.optimize(lambda trial: bb_objective(trial, indicator_data), n_trials=sc.optimization_depth)
+    #indicator_data = add_bollinger_bands_data(indicator_data, bb_study.best_params['bb_range'])
+    #df3 = get_buy_and_sell_points_bollinger(indicator_data, bb_study.best_params['bollinger_buy_gap'], bb_study.best_params['bollinger_sell_gap'], bb_study.best_params['bb_range'], bb_study.best_params['change_consec'], bb_study.best_params['change_diff'])
 else:
-    df3 = get_buy_and_sell_points_bollinger(indicator_data, sc.bollinger_buy_gap, sc.bollinger_sell_gap, sc.bb_range, sc.change_consec, sc.change_diff)
+    df1 = get_buy_and_sell_points_stoch(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
 
-df1 = get_buy_and_sell_points_stoch(indicator_data, sc.stoch_buy, sc.stoch_sell)
 df2 = get_buy_and_sell_points_adx(indicator_data, sc.adx_buy, sc.adx_sell)
+df3 = get_buy_and_sell_points_bollinger(indicator_data, sc.bollinger_buy_gap, sc.bollinger_sell_gap, sc.bb_range, sc.change_consec, sc.change_diff)
 
 
 # plot the prices over time, highlighting the buy and sell points on streamlit
@@ -413,10 +427,10 @@ def plot_investments(new_df):
 
 st.header('Buy and Sell Points adx')
 plot_buy_and_sell_points(df2)
-st.header('Buy and Sell Points stoch')
-plot_buy_and_sell_points(df1)
 st.header('Buy and Sell Points bb and stoch')
 plot_buy_and_sell_points(df3)
+st.header('Buy and Sell Points stoch')
+plot_buy_and_sell_points(df1)
 st.header('Profitability')
 st.write('bb profitability: ', simulate_buying_and_selling(df3)/sc.starting_money* 100 - 100, '%')
 st.write('adx profitability: ', simulate_buying_and_selling(df2)/sc.starting_money* 100 - 100, '%')
