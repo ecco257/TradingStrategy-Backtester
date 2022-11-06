@@ -1,7 +1,8 @@
 discord.py==2.0.1
 finnhub_python==2.4.15
 optuna==3.0.3
-pandas==1.5.0
-plotly==5.10.0
+pandas==1.5.1
+plotly==5.11.0
 ratelimit==2.2.1
-streamlit==1.13.0
+streamlit==1.14.0
+websocket_client==1.4.2
