@@ -158,6 +158,30 @@ def add_adx_data(price_data, adx_range):
     price_data['adx_avg'] = [sum(price_data['adx'][i-3:i])/3 for i in range(3, len(price_data['t']))]
     return price_data
 
+def add_average_true_range_data(price_data, atr_range):
+    tr = []
+    for i in range(0, len(price_data['t'])):
+        if i < 1:
+            tr.append(0)
+        else:
+            tr.append(max((price_data['h'][i] - price_data['l'][i])/price_data['l'][i], abs(price_data['h'][i] - price_data['c'][i-1])/min(price_data['h'][i], price_data['c'][i-1]), abs(price_data['l'][i] - price_data['c'][i-1])/min(price_data['l'][i], price_data['c'][i-1]))*100)
+    price_data['tr2'] = tr
+    atr = []
+    for i in range(0, len(price_data['t'])):
+        if i < atr_range:
+            atr.append(0)
+        else:
+            atr.append(sum(price_data['tr2'][i-atr_range:i])/atr_range)
+    price_data['atr'] = atr
+    atr_sma = []
+    for i in range(0, len(price_data['t'])):
+        if i < 3:
+            atr_sma.append(0)
+        else:
+            atr_sma.append(sum(price_data['atr'][i-3:i])/3)
+    price_data['atr_sma'] = atr_sma
+    return price_data  
+
 def add_all_indicators(price_data):
     price_data = add_stochastic_data(price_data, sc.stoch_range)
     #price_data = add_ease_of_movement_data(price_data)
@@ -166,6 +190,7 @@ def add_all_indicators(price_data):
     price_data = add_macd_data(price_data)
     price_data = add_bollinger_bands_data(price_data, sc.bb_range)
     price_data = add_adx_data(price_data, sc.adx_range)
+    price_data = add_average_true_range_data(price_data, sc.atr_range)
     return price_data
 
 # use adx to determine if the price is trending
@@ -196,12 +221,12 @@ def get_buy_and_sell_points_stoch(price_data, buy_thres, sell_thres, change_cons
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
     for i in range(1, len(price_data['t'])):
         # if the stochastic oscillator is below the buy threshold and the previous value was above the buy threshold, buy
-        if (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+        if (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'buy'
             prev_price = price_data['c'][i]
             prev_buy = True
             prev_sell = False
-        elif (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+        elif (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'sell'
             prev_price = price_data['c'][i]
             prev_buy = False
@@ -245,17 +270,50 @@ def get_buy_and_sell_points_bollinger(price_data, bollinger_buy_gap, bollinger_s
             last_price = price_data['c'][i]
     return df
 
+def get_buy_and_sell_bb_stoch_dynamic(price_data, bb_range, buy_thres, sell_thres, consec_factor, diff_factor, change_factor):
+    
+    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
+
+    prev_price = 0
+    prev_buy = False
+    prev_sell = False
+
+    for i in range(0, len(price_data['t'])):
+        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
+
+    for i in range(bb_range + 1, len(price_data['t'])):
+        # change consec should be a function of the percent difference between the upper bb and lower bb
+        # change_consec = (price_data['upper_bb'][i]/price_data['lower_bb'][i] - 1) * consec_factor + 1
+        # change_diff = (price_data['upper_bb'][i]/price_data['lower_bb'][i] - 1) * diff_factor + 1
+        change_consec = price_data['atr'][i] / change_factor * consec_factor + 1
+        change_diff = price_data['atr'][i] / change_factor * diff_factor + 1
+        if (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'buy'
+            prev_price = price_data['c'][i]
+            prev_buy = True
+            prev_sell = False
+        elif (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'sell'
+            prev_price = price_data['c'][i]
+            prev_buy = False
+            prev_sell = True
+    
+    return df
+
+
+
 # simulate the profitability if buying and selling over the time period
 def simulate_buying_and_selling(df):
     # initialize the money and the number of stocks
+    money_history_df = pd.DataFrame(columns=['t', 'money', 'stocks', 'price', 'buy/sell/hold'])
     money = sc.starting_money
-    num_stocks = 0
+    num_stocks = sc.starting_stocks
     prev = 'hold'
     prev_price = 0
     # go through the data frame and simulate buying and selling
     for i in range(0, len(df)):
         # if the buy/sell/hold is buy, spend a certain amount of money on stock
-        if df['buy/sell/hold'][i] == 'buy' and money > sc.investment:
+        if df['buy/sell/hold'][i] == 'buy' and money >= sc.investment:
             #if prev == 'sell' and money > sc.investment*(prev_price/df['price'][i]):
             #    num_stocks += sc.investment*(prev_price/df['price'][i])*(1-sc.transaction_fee)/df['price'][i]
             #    money -= sc.investment*(prev_price/df['price'][i])
@@ -264,27 +322,33 @@ def simulate_buying_and_selling(df):
             money -= sc.investment
             prev = 'buy'
             prev_price = df['price'][i]
+            money_history_df.loc[len(money_history_df)] = [df['time'][i], money, num_stocks, df['price'][i], 'buy']
             # if the buy/sell/hold is sell, sell a certain amount of shares
         elif df['buy/sell/hold'][i] == 'sell':
-            if prev == 'buy' and num_stocks > sc.investment/prev_price:
+            if prev == 'buy' and num_stocks >= sc.investment/prev_price:
                 money += df['price'][i]/prev_price*sc.investment*(1-sc.transaction_fee)
                 num_stocks -= sc.investment/prev_price
-            elif num_stocks > sc.investment/df['price'][i]:
+            elif prev == 'buy' and num_stocks > 0:
+                money += df['price'][i]*num_stocks*(1-sc.transaction_fee)
+                num_stocks = 0
+            elif num_stocks >= sc.investment/df['price'][i]:
                 # otherwise only get the amount of stocks equivalent to the investment
                 money += sc.investment*(1-sc.transaction_fee)
                 num_stocks -= sc.investment/df['price'][i]
             prev = 'sell'
             prev_price = df['price'][i]
-
+            money_history_df.loc[len(money_history_df)] = [df['time'][i], money, num_stocks, df['price'][i], 'sell']
+        else:
+            money_history_df.loc[len(money_history_df)] = [df['time'][i], money, num_stocks, df['price'][i], 'hold']
     # backtrack to last buy to make an accurate profit calculation
-    if num_stocks > 0:
+    if num_stocks > 0 and prev != 'hold':
         i = len(df)-1
         while(df['buy/sell/hold'][i] == 'hold'):
             i -= 1
-        if df['buy/sell/hold'][i] == 'buy':
-            money += num_stocks*df['price'][i]
-            num_stocks = 0
-    return money
+        money += num_stocks*df['price'][i]
+        num_stocks = 0
+        money_history_df.loc[len(money_history_df)] = [df['time'][len(df)-1], money, num_stocks, df['price'][len(df)-1], 'sell']
+    return money, money_history_df
 
 if sc.use_crypto:
     price_data = get_crypto_price_data(sc.crypto, sc.interval)
@@ -325,23 +389,26 @@ def bb_objective(trial, indicator_data):
     profit = simulate_buying_and_selling(df)
     return profit
 
-if sc.optimize_params:
-    stoch_study = optuna.create_study(direction='maximize')
-    stoch_study.optimize(lambda trial: stoch_objective(trial, indicator_data), n_trials=sc.optimization_depth)
-    indicator_data = add_stochastic_data(indicator_data, stoch_study.best_params['stoch_range'])
-    df1 = get_buy_and_sell_points_stoch(indicator_data, stoch_study.best_params['buy_thres'], stoch_study.best_params['sell_thres'], stoch_study.best_params['change_consec'], stoch_study.best_params['change_diff'])
-    #adx_study = optuna.create_study(direction='maximize')
-    #adx_study.optimize(lambda trial: adx_objective(trial, indicator_data), n_trials=sc.optimization_depth)
-    #indicator_data = add_adx_data(indicator_data, adx_study.best_params['adx_range'])
-    #df2 = get_buy_and_sell_points_adx(indicator_data, adx_study.best_params['buy_thres'], adx_study.best_params['sell_thres'])
-    #bb_study = optuna.create_study(direction='maximize')
-    #bb_study.optimize(lambda trial: bb_objective(trial, indicator_data), n_trials=sc.optimization_depth)
-    #indicator_data = add_bollinger_bands_data(indicator_data, bb_study.best_params['bb_range'])
-    #df3 = get_buy_and_sell_points_bollinger(indicator_data, bb_study.best_params['bollinger_buy_gap'], bb_study.best_params['bollinger_sell_gap'], bb_study.best_params['bb_range'], bb_study.best_params['change_consec'], bb_study.best_params['change_diff'])
-else:
-    df1 = get_buy_and_sell_points_stoch(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+def bb_stoch_objective(trial, indicator_data):
+    #diff_factor = trial.suggest_float('diff_factor', 0, 2)
+    #consec_factor = trial.suggest_float('consec_factor', 0, 2)
+    change_factor = trial.suggest_float('change_factor', 1000, 1000)
+    stoch_buy = trial.suggest_float('stoch_buy', 0, 50)
+    stoch_sell = trial.suggest_float('stoch_sell', 50, 100)
+    df = get_buy_and_sell_bb_stoch_dynamic(indicator_data, sc.bb_range, stoch_buy, stoch_sell, sc.consec_factor, sc.diff_factor, change_factor) 
+    profit = simulate_buying_and_selling(df)[0]
+    return profit
 
-df2 = get_buy_and_sell_points_adx(indicator_data, sc.adx_buy, sc.adx_sell)
+if sc.optimize_params:
+    stoch_bb_study = optuna.create_study(direction='maximize')
+    stoch_bb_study.optimize(lambda trial: bb_stoch_objective(trial, indicator_data), n_trials=sc.optimization_depth)
+    df4 = get_buy_and_sell_bb_stoch_dynamic(indicator_data, sc.bb_range, stoch_bb_study.best_params['stoch_buy'], stoch_bb_study.best_params['stoch_sell'], sc.consec_factor, sc.diff_factor, stoch_bb_study.best_params['change_factor'])
+else:
+    df4 = get_buy_and_sell_bb_stoch_dynamic(indicator_data, sc.bb_range, sc.stoch_buy, sc.stoch_sell, sc.consec_factor, sc.diff_factor, 1000)
+
+df1 = get_buy_and_sell_points_stoch(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+
+# df2 = get_buy_and_sell_points_adx(indicator_data, sc.adx_buy, sc.adx_sell)
 df3 = get_buy_and_sell_points_bollinger(indicator_data, sc.bollinger_buy_gap, sc.bollinger_sell_gap, sc.bb_range, sc.change_consec, sc.change_diff)
 
 
@@ -419,25 +486,43 @@ def plot_adx(indicator_data):
     fig.update_layout(title='ADX', xaxis_title='Date', yaxis_title='ADX')
     st.plotly_chart(fig)
 
-def plot_investments(new_df):
+def plot_investments(money_history):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=new_df['time'], y=new_df['investment'], mode='lines', name='investment'))
-    fig.update_layout(title='Investments', xaxis_title='Date', yaxis_title='investment')
+    fig.add_trace(go.Scatter(x=[t for t in money_history['t']], y=money_history['money'], mode='lines', name='money'))
+    # fig.add_trace(go.Scatter(x=[t for t in money_history['t']], y=money_history['stocks'], mode='lines', name='stocks'))
+    fig.update_layout(title='Investments', xaxis_title='Date', yaxis_title='Investments')
+    st.plotly_chart(fig)
+    
+def plot_atr(indicator_data):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['atr'], mode='lines', name='atr'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['atr_sma'], mode='lines', name='atr average'))
+    fig.update_layout(title='ATR', xaxis_title='Date', yaxis_title='ATR')
     st.plotly_chart(fig)
 
-st.header('Buy and Sell Points adx')
-plot_buy_and_sell_points(df2)
-st.header('Buy and Sell Points bb and stoch')
+
+st.header('Buy and Sell Points bb')
 plot_buy_and_sell_points(df3)
 st.header('Buy and Sell Points stoch')
 plot_buy_and_sell_points(df1)
+st.header('Buy and Sell Points bb stoch dynamic')
+plot_buy_and_sell_points(df4)
+st.header('Investments for bb stoch')
+plot_investments(simulate_buying_and_selling(df4)[1])
+st.header('Investments for stoch')
+plot_investments(simulate_buying_and_selling(df1)[1])
+st.header('Investments for bb')
+plot_investments(simulate_buying_and_selling(df3)[1])
 st.header('Profitability')
-st.write('bb profitability: ', simulate_buying_and_selling(df3)/sc.starting_money* 100 - 100, '%')
-st.write('adx profitability: ', simulate_buying_and_selling(df2)/sc.starting_money* 100 - 100, '%')
-st.write('stoch profitability: ', simulate_buying_and_selling(df1)/sc.starting_money* 100 - 100, '%')
+st.write('bb stoch dynamic profit: ', simulate_buying_and_selling(df4)[0]/(sc.starting_money + sc.starting_stocks*indicator_data['c'][0]) * 100 - 100, '%')
+st.write('bb profitability: ', simulate_buying_and_selling(df3)[0]/(sc.starting_money + sc.starting_stocks*indicator_data['c'][0]) * 100 - 100, '%')
+st.write('stoch profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money + sc.starting_stocks*indicator_data['c'][0]) * 100 - 100), '%')
+st.header('Real Change')
+st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
+plot_atr(indicator_data)
 plot_bollinger_bands(indicator_data)
-plot_adx(indicator_data)
 plot_stochastic_data(indicator_data)
 plot_volume(indicator_data)
+plot_adx(indicator_data)
 plot_macd(indicator_data)
 plot_ema12_ema26(indicator_data)
