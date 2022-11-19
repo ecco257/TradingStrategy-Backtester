@@ -1,10 +1,10 @@
-ticker = 'AAPL' # ticker to analyze
-crypto = 'BINANCE:ETHBUSD' # crypto to analyze
-use_crypto = False # if True, the crypto will be analyzed instead of the stock
+ticker = 'TLRY' # ticker to analyze
+crypto = 'BINANCE:THETABUSD' # crypto to analyze
+use_crypto = True # if True, the crypto will be analyzed instead of the stock
 interval = 'D' # less than a day means only a month of data, valid options are '1' '5' '15' '30' '60' 'D' 'W' 'M'
 transaction_fee = 0.001 # 2% transaction fee default
 starting_money = 100000 # $1,000 default
-starting_stocks = 10000 # 0 stocks default
+starting_stocks = 0 # 0 stocks default
 investment = 10000 # $50 default
 adx_sell = 40 # default 40
 adx_buy = 20 # default 20
