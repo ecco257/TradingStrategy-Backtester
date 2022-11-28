@@ -100,7 +100,7 @@ def add_bollinger_bands_data(price_data, bb_range):
             ma.append(0)
         else:
             ma.append(sum(price_data['c'][i-bb_range:i])/bb_range)
-    price_data['sma'] = ma
+    price_data['bsma'] = ma
     # add the standard deviation of the price data to the price data
     std = []
     for i in range(0, len(price_data['t'])):
@@ -110,9 +110,9 @@ def add_bollinger_bands_data(price_data, bb_range):
             std.append(pd.Series(price_data['c'][i-bb_range:i]).std())
     price_data['std'] = std
     # add the upper bollinger band to the price data
-    price_data['upper_bb'] = [price_data['sma'][i] + 2*price_data['std'][i] for i in range(0, len(price_data['t']))]
+    price_data['upper_bb'] = [price_data['bsma'][i] + 2*price_data['std'][i] for i in range(0, len(price_data['t']))]
     # add the lower bollinger band to the price data
-    price_data['lower_bb'] = [price_data['sma'][i] - 2*price_data['std'][i] for i in range(0, len(price_data['t']))]
+    price_data['lower_bb'] = [price_data['bsma'][i] - 2*price_data['std'][i] for i in range(0, len(price_data['t']))]
     return price_data
 
 # add the average directional movement index to the price data
@@ -182,6 +182,16 @@ def add_average_true_range_data(price_data, atr_range):
     price_data['atr_sma'] = atr_sma
     return price_data  
 
+def add_sma_data(price_data, sma_range):
+    sma = []
+    for i in range(0, len(price_data['t'])):
+        if i < sma_range:
+            sma.append(0)
+        else:
+            sma.append(sum(price_data['c'][i-sma_range:i])/sma_range)
+    price_data['sma'] = sma
+    return price_data
+
 def add_all_indicators(price_data):
     price_data = add_stochastic_data(price_data, sc.stoch_range)
     #price_data = add_ease_of_movement_data(price_data)
@@ -191,6 +201,7 @@ def add_all_indicators(price_data):
     price_data = add_bollinger_bands_data(price_data, sc.bb_range)
     price_data = add_adx_data(price_data, sc.adx_range)
     price_data = add_average_true_range_data(price_data, sc.atr_range)
+    price_data = add_sma_data(price_data, sc.sma_range)
     return price_data
 
 # use adx to determine if the price is trending
@@ -217,20 +228,40 @@ def get_buy_and_sell_points_stoch(price_data, buy_thres, sell_thres, change_cons
     prev_price = 0
     prev_buy = False
     prev_sell = False
+    buy_skips = 0
+    sell_skips = 0
+    cur_sell_skips = 0
+    cur_buy_skips = 0
+    up_trend = False
     for i in range(0, len(price_data['t'])):
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
     for i in range(1, len(price_data['t'])):
-        # if the stochastic oscillator is below the buy threshold and the previous value was above the buy threshold, buy
+        up_trend = price_data['c'][i] > price_data['sma'][i]
         if (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
-            df.loc[i, 'buy/sell/hold'] = 'buy'
-            prev_price = price_data['c'][i]
-            prev_buy = True
-            prev_sell = False
+            if cur_buy_skips == 0:
+                df.loc[i, 'buy/sell/hold'] = 'buy'
+                prev_price = price_data['c'][i]
+                prev_buy = True
+                prev_sell = False
+            else:
+                cur_buy_skips -= 1
         elif (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
-            df.loc[i, 'buy/sell/hold'] = 'sell'
-            prev_price = price_data['c'][i]
-            prev_buy = False
-            prev_sell = True
+            if cur_sell_skips == 0:
+                df.loc[i, 'buy/sell/hold'] = 'sell'
+                prev_price = price_data['c'][i]
+                prev_buy = False
+                prev_sell = True
+            else:
+                cur_sell_skips -= 1
+        if up_trend and sell_skips != round(price_data['atr'][i]):
+            sell_skips = round(price_data['atr'][i])
+            cur_sell_skips = sell_skips
+        elif buy_skips != round(price_data['atr'][i]):
+            buy_skips = round(price_data['atr'][i])
+            cur_buy_skips = buy_skips
+        #cur_buy_skips = 0
+        #cur_sell_skips = 0
+
     return df
 
 # use bollinger bands to determine if the price is trending
@@ -477,7 +508,6 @@ def plot_stochastic_data(indicator_data):
 # plot the moving average over time on streamlit
 def plot_moving_average(indicator_data):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['fma'], mode='lines', name='fast moving average'))
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['sma'], mode='lines', name='slow moving average'))
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['c'], mode='lines', name='price'))
     fig.update_layout(title='Moving Average', xaxis_title='Date', yaxis_title='Price')
@@ -565,6 +595,7 @@ st.header('Investments for stoch')
 plot_investments(simulate_buying_and_selling(df1)[1])
 st.header('Investments for bb')
 plot_investments(simulate_buying_and_selling(df3)[1])
+plot_moving_average(indicator_data)
 plot_atr(indicator_data)
 plot_bollinger_bands(indicator_data)
 plot_volume(indicator_data)

@@ -4,7 +4,7 @@ import time
 
 
 # initialize the to and from dates based on the delta_time specified in config.py
-to_date_unix = int(time.time())
+to_date_unix = int(time.time() - 60*60*24*config.to_date_less)
 
 from_date_unix = to_date_unix - int(config.delta_time * 24 * 60 * 60)
 
