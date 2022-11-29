@@ -320,9 +320,10 @@ def get_buy_and_sell_bb_stoch_dynamic(price_data, bb_range, buy_thres, sell_thre
     return df
 
 # simulate the profitability if buying and selling over the time period
-def simulate_buying_and_selling(df):
+def simulate_buying_and_selling(df, return_chart=False):
     # initialize the money and the number of stocks
-    money_history_df = pd.DataFrame(columns=['t', 'money'])
+    if return_chart:
+        money_history_df = pd.DataFrame(columns=['t', 'money'])
     money = sc.starting_money
     num_stocks = sc.starting_stocks
     num_short_stocks_owed = sc.starting_short_stocks
@@ -343,7 +344,6 @@ def simulate_buying_and_selling(df):
                 num_stocks += sc.investment*(1-sc.transaction_fee)/df['price'][i]
                 money -= sc.investment
             prev_price = df['price'][i]
-            money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
         elif df['buy/sell/hold'][i] == 'sell':
             if prev_price != 0 and num_stocks >= sc.investment/prev_price:
                 money += df['price'][i]/prev_price*sc.investment*(1-sc.transaction_fee)
@@ -355,7 +355,6 @@ def simulate_buying_and_selling(df):
                 money += sc.investment*(1-sc.transaction_fee)
                 num_stocks -= sc.investment/df['price'][i]
             prev_price = df['price'][i]
-            money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
         elif df['buy/sell/hold'][i] == 'short_open':
             if prev_short_price != 0:
                 money += (df['price'][i]/prev_short_price)*sc.investment*(1-sc.transaction_fee)
@@ -364,7 +363,6 @@ def simulate_buying_and_selling(df):
                 money += sc.investment*(1-sc.transaction_fee)
                 num_short_stocks_owed += sc.investment/df['price'][i]
             prev_short_price = df['price'][i]
-            money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
         elif df['buy/sell/hold'][i] == 'short_close':
             if prev_short_price != 0 and num_short_stocks_owed >= sc.investment/prev_short_price:
                 money -= df['price'][i]/prev_short_price*sc.investment*(1-sc.transaction_fee)
@@ -376,16 +374,19 @@ def simulate_buying_and_selling(df):
                 money -= sc.investment*(1-sc.transaction_fee)
                 num_short_stocks_owed -= sc.investment/df['price'][i]
             prev_short_price = df['price'][i]
-            money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
-        else:
+        if return_chart:
             money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
             
     # at the end of the simulation, sell all stocks, and pay off all short stocks
     money += num_stocks * df['price'][len(df)-1]
-    money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 1), money]
+    if return_chart:
+        money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 1), money]
     money -= num_short_stocks_owed * df['price'][len(df)-1]
-    money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 2), money]
-    return money, money_history_df
+    if return_chart:
+        money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 2), money]
+    if return_chart:
+        return money_history_df
+    return money
 
 if sc.use_crypto:
     price_data = get_crypto_price_data(sc.crypto, sc.interval)
@@ -396,49 +397,15 @@ indicator_data = add_all_indicators(price_data)
 
 # optimize stochastic parameters with optuna
 def stoch_objective(trial, indicator_data):
-    buy_thres = trial.suggest_float('buy_thres', 0, 100)
-    sell_thres = trial.suggest_float('sell_thres', 0, 100)
     stoch_range = trial.suggest_int('stoch_range', 2, int(len(indicator_data['t'])/10))
-    change_consec = trial.suggest_float('change_consec', 1, 1.1)
-    change_diff = trial.suggest_float('change_diff', 1, 1.1)
     indicator_data = add_stochastic_data(indicator_data, stoch_range)
-    df = get_buy_and_sell_points_stoch(indicator_data, buy_thres, sell_thres, change_consec, change_diff)
+    df = get_buy_and_sell_points_stoch(indicator_data)
     profit = simulate_buying_and_selling(df)
-    return profit
-
-def adx_objective(trial, indicator_data):
-    buy_thres = trial.suggest_float('buy_thres', 0, 100)
-    sell_thres = trial.suggest_float('sell_thres', 0, 100)
-    adx_range = trial.suggest_int('adx_range', 2, 30)
-    indicator_data = add_adx_data(indicator_data, adx_range)
-    df = get_buy_and_sell_points_adx(indicator_data, buy_thres, sell_thres)
-    profit = simulate_buying_and_selling(df)
-    return profit
-
-def bb_objective(trial, indicator_data):
-    bollinger_buy_gap = trial.suggest_float('bollinger_buy_gap', 1, 2)
-    bollinger_sell_gap = trial.suggest_float('bollinger_sell_gap', 1, 2)
-    bb_range = trial.suggest_int('bb_range', 2, int(len(indicator_data['t'])/10))
-    change_consec = trial.suggest_float('change_consec', 1, 2)
-    change_diff = trial.suggest_float('change_diff', 1, 2)
-    indicator_data = add_bollinger_bands_data(indicator_data, bb_range)
-    df = get_buy_and_sell_points_bollinger(indicator_data, bollinger_buy_gap, bollinger_sell_gap, bb_range, change_consec, change_diff)
-    profit = simulate_buying_and_selling(df)
-    return profit
-
-def bb_stoch_objective(trial, indicator_data):
-    buy_constant = trial.suggest_float('buy_constant', 0, 2)
-    sell_constant = trial.suggest_float('sell_constant', 0, 2)
-    df = get_buy_and_sell_bb_stoch_dynamic(indicator_data, sc.bb_range, sc.stoch_buy, sc.stoch_sell, 1000, buy_constant, sell_constant) 
-    profit = simulate_buying_and_selling(df)[0]
     return profit
 
 df1 = get_buy_and_sell_points_stoch(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
 
-df3 = get_buy_and_sell_points_bollinger(indicator_data, sc.bollinger_buy_gap, sc.bollinger_sell_gap, sc.bb_range, sc.change_consec, sc.change_diff)
-
-
-# plot the prices over time, highlighting the buy and sell points on streamlit
+# plot the prices over time, highlighting the buy and sell points/short opens and closes on streamlit
 def plot_buy_and_sell_points(df):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df['time'], y=df['price'], mode='lines', name='price'))
@@ -449,7 +416,6 @@ def plot_buy_and_sell_points(df):
     fig.update_layout(title='Results', xaxis_title='Date', yaxis_title='Price')
     st.plotly_chart(fig)
 
-# plot the slowk and slowd over time on streamlit
 def plot_stochastic_data(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['slowk'], mode='lines', name='slowk'))
@@ -457,7 +423,6 @@ def plot_stochastic_data(indicator_data):
     fig.update_layout(title='Stochastic Data', xaxis_title='Date', yaxis_title='%k and %d')
     st.plotly_chart(fig)
 
-# plot the moving average over time on streamlit
 def plot_moving_average(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['sma'], mode='lines', name='slow moving average'))
@@ -465,7 +430,6 @@ def plot_moving_average(indicator_data):
     fig.update_layout(title='Moving Average', xaxis_title='Date', yaxis_title='Price')
     st.plotly_chart(fig)
 
-# plot emv and ema over time on streamlit
 def plot_emv(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['emv'], mode='lines', name='emv'))
@@ -473,14 +437,12 @@ def plot_emv(indicator_data):
     fig.update_layout(title='EMV', xaxis_title='Date', yaxis_title='EMV and EMA')
     st.plotly_chart(fig)
 
-# plot the volume over time on streamlit and the simple moving average of the volume
 def plot_volume(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['v'], mode='lines', name='volume'))
     fig.update_layout(title='Volume', xaxis_title='Date', yaxis_title='Volume')
     st.plotly_chart(fig)
 
-# plot the macd over time on streamlit
 def plot_macd(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['macd'], mode='lines', name='macd'))
@@ -488,7 +450,6 @@ def plot_macd(indicator_data):
     fig.update_layout(title='MACD', xaxis_title='Date', yaxis_title='MACD')
     st.plotly_chart(fig)
 
-# plot ema12 and ema26 over time on streamlit
 def plot_ema12_ema26(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['ema12'], mode='lines', name='ema12'))
@@ -496,7 +457,6 @@ def plot_ema12_ema26(indicator_data):
     fig.update_layout(title='EMA12 and EMA26', xaxis_title='Date', yaxis_title='EMA12 and EMA26')
     st.plotly_chart(fig)
 
-# plot bollinger bands over time on streamlit
 def plot_bollinger_bands(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['upper_bb'], mode='lines', name='upperband'))
@@ -526,20 +486,14 @@ def plot_atr(indicator_data):
     fig.update_layout(title='ATR', xaxis_title='Date', yaxis_title='ATR')
     st.plotly_chart(fig)
 
-
-st.header('Buy and Sell Points bb')
-plot_buy_and_sell_points(df3)
 st.header('Buy and Sell Points stoch')
 plot_buy_and_sell_points(df1)
-plot_investments(simulate_buying_and_selling(df1)[1])
+st.header('Change in liquidity for stoch')
+plot_investments(simulate_buying_and_selling(df1, True))
 st.header('Profitability')
-st.write('bb profitability: ', simulate_buying_and_selling(df3)[0]/(sc.starting_money) * 100 - 100, '%')
-st.write('stoch profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money) * 100 - 100), '%')
+st.write('stoch profitability: ', (simulate_buying_and_selling(df1)/(sc.starting_money) * 100 - 100), '%')
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
-st.header('Investments for stoch')
-st.header('Investments for bb')
-plot_investments(simulate_buying_and_selling(df3)[1])
 plot_moving_average(indicator_data)
 plot_stochastic_data(indicator_data)
 plot_atr(indicator_data)
