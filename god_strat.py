@@ -7,7 +7,7 @@ import streamlit as st
 from plotly import graph_objs as go
 import optuna
 
-st.title('Strategy 2')
+st.title('Strategy 2?')
 
 # initialize the Finnhub API client
 finnhub_client = fh.Client(api_key=config.API_KEY)
@@ -325,8 +325,9 @@ def simulate_buying_and_selling(df):
     money_history_df = pd.DataFrame(columns=['t', 'money'])
     money = sc.starting_money
     num_stocks = sc.starting_stocks
-    num_short_stocks = sc.starting_short_stocks
-    prev = 'hold'
+    num_short_stocks_owed = sc.starting_short_stocks
+    money += num_short_stocks_owed * df['price'][0]
+    money -= num_stocks * df['price'][0]
     prev_price = 0
     prev_short_price = 0
     # go through the data frame and simulate buying and selling
@@ -341,7 +342,6 @@ def simulate_buying_and_selling(df):
             elif prev_price == 0 and money >= sc.investment:
                 num_stocks += sc.investment*(1-sc.transaction_fee)/df['price'][i]
                 money -= sc.investment
-            prev = 'buy'
             prev_price = df['price'][i]
             money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
         elif df['buy/sell/hold'][i] == 'sell':
@@ -354,34 +354,37 @@ def simulate_buying_and_selling(df):
             elif num_stocks > sc.investment/df['price'][i]:
                 money += sc.investment*(1-sc.transaction_fee)
                 num_stocks -= sc.investment/df['price'][i]
-            prev = 'sell'
             prev_price = df['price'][i]
             money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
         elif df['buy/sell/hold'][i] == 'short_open':
-            if prev_short_price != 0 and money >= sc.investment * df['price'][i]/prev_short_price:
-                num_short_stocks += sc.investment*(df['price'][i]/prev_short_price)*(1-sc.transaction_fee)/df['price'][i]
-                money -= sc.investment * (df['price'][i]/prev_short_price)
-            elif money > 0 and prev_short_price != 0:
-                num_short_stocks += money*(1-sc.transaction_fee)/df['price'][i]
-                money = 0
-            elif prev_short_price == 0 and money >= sc.investment:
-                num_short_stocks += sc.investment*(1-sc.transaction_fee)/df['price'][i]
-                money -= sc.investment
-            prev = 'short_open'
+            if prev_short_price != 0:
+                money += (df['price'][i]/prev_short_price)*sc.investment*(1-sc.transaction_fee)
+                num_short_stocks_owed += sc.investment/prev_short_price
+            else:
+                money += sc.investment*(1-sc.transaction_fee)
+                num_short_stocks_owed += sc.investment/df['price'][i]
             prev_short_price = df['price'][i]
             money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
         elif df['buy/sell/hold'][i] == 'short_close':
-            if prev_short_price != 0 and num_short_stocks >= sc.investment*(prev_short_price/df['price'][i])/df['price'][i]:
-                money += sc.investment*(prev_short_price/df['price'][i])*(1-sc.transaction_fee)
-                num_short_stocks -= sc.investment*(prev_short_price/df['price'][i])/df['price'][i]
-            elif num_short_stocks > 0 and prev_short_price != 0:
-                money += prev_short_price*num_short_stocks*(1-sc.transaction_fee)
-                num_short_stocks = 0
-            prev = 'short_close'
+            if prev_short_price != 0 and num_short_stocks_owed >= sc.investment/prev_short_price:
+                money -= df['price'][i]/prev_short_price*sc.investment*(1-sc.transaction_fee)
+                num_short_stocks_owed -= sc.investment/prev_short_price
+            elif num_short_stocks_owed > 0 and prev_short_price != 0:
+                money -= df['price'][i]*num_short_stocks_owed*(1-sc.transaction_fee)
+                num_short_stocks_owed = 0
+            elif num_short_stocks_owed > sc.investment/df['price'][i]:
+                money -= sc.investment*(1-sc.transaction_fee)
+                num_short_stocks_owed -= sc.investment/df['price'][i]
             prev_short_price = df['price'][i]
             money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
+        else:
+            money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
             
-    # backtrack to last buy to make an accurate profit calculation
+    # at the end of the simulation, sell all stocks, and pay off all short stocks
+    money += num_stocks * df['price'][len(df)-1]
+    money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 1), money]
+    money -= num_short_stocks_owed * df['price'][len(df)-1]
+    money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 2), money]
     return money, money_history_df
 
 if sc.use_crypto:
@@ -513,7 +516,6 @@ def plot_adx(indicator_data):
 def plot_investments(money_history):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[t for t in money_history['t']], y=money_history['money'], mode='lines', name='money'))
-    # fig.add_trace(go.Scatter(x=[t for t in money_history['t']], y=money_history['stocks'], mode='lines', name='stocks'))
     fig.update_layout(title='Investments', xaxis_title='Date', yaxis_title='Investments')
     st.plotly_chart(fig)
     
@@ -529,13 +531,13 @@ st.header('Buy and Sell Points bb')
 plot_buy_and_sell_points(df3)
 st.header('Buy and Sell Points stoch')
 plot_buy_and_sell_points(df1)
+plot_investments(simulate_buying_and_selling(df1)[1])
 st.header('Profitability')
-st.write('bb profitability: ', simulate_buying_and_selling(df3)[0]/(sc.starting_money + sc.starting_stocks*indicator_data['c'][0] + sc.starting_short_stocks*indicator_data['c'][0]) * 100 - 100, '%')
-st.write('stoch profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money + sc.starting_stocks*indicator_data['c'][0] + sc.starting_short_stocks*indicator_data['c'][0]) * 100 - 100), '%')
+st.write('bb profitability: ', simulate_buying_and_selling(df3)[0]/(sc.starting_money) * 100 - 100, '%')
+st.write('stoch profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money) * 100 - 100), '%')
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
 st.header('Investments for stoch')
-plot_investments(simulate_buying_and_selling(df1)[1])
 st.header('Investments for bb')
 plot_investments(simulate_buying_and_selling(df3)[1])
 plot_moving_average(indicator_data)
