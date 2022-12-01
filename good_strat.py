@@ -30,8 +30,14 @@ def add_stochastic_data(price_data, stoch_range):
             k.append(0)
             d.append(0)
         else:
-            k.append((price_data['c'][i] - min(price_data['l'][i-stoch_range:i]))/(max(price_data['h'][i-stoch_range:i]) - min(price_data['l'][i-stoch_range:i]))*100)
-            d.append(sum(k[i-3:i])/3)
+            maximum = max(price_data['h'][i-stoch_range:i])
+            minimum = min(price_data['l'][i-stoch_range:i])
+            if maximum - minimum == 0:
+                k.append(0)
+                d.append(0)
+            else:
+                k.append((price_data['c'][i] - minimum)/(maximum - minimum)*100)
+                d.append(sum(k[i-3:i])/3)
     price_data['slowk'] = k
     price_data['slowd'] = d
     return price_data
@@ -192,6 +198,14 @@ def add_sma_data(price_data, sma_range):
     price_data['sma'] = sma
     return price_data
 
+# add volume weighted average price data to the price data
+def add_vwap_data(price_data):
+    vwap = []
+    for i in range(0, len(price_data['t'])):
+        vwap.append(sum([(price_data['c'][j] + price_data['h'][j] + price_data['l'][j])/3*price_data['v'][j] for j in range(0, i+1)])/sum(price_data['v'][0:i+1]))
+    price_data['vwap'] = vwap
+    return price_data
+        
 def add_all_indicators(price_data):
     price_data = add_stochastic_data(price_data, sc.stoch_range)
     #price_data = add_ease_of_movement_data(price_data)
@@ -202,25 +216,61 @@ def add_all_indicators(price_data):
     price_data = add_adx_data(price_data, sc.adx_range)
     price_data = add_average_true_range_data(price_data, sc.atr_range)
     price_data = add_sma_data(price_data, sc.sma_range)
+    price_data = add_vwap_data(price_data)
     return price_data
 
-# use adx to determine if the price is trending
-def get_buy_and_sell_points_adx(price_data, buy_thres, sell_thres):
-    # initialize the data frame that will be used to store the time stamps to buy or sell the ticker and whether it is a 
-    # buy or sell
+
+def get_buy_and_sell_points_vwap(price_data):
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
-    # initially everything is a hold
+    prev_price = 0
+    prev_short_price = 0
+    prev_buy = False
+    prev_sell = False
+    prev_short_open = False
+    prev_short_close = False
+    short = False
+    buy = False
     for i in range(0, len(price_data['t'])):
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
-    for i in range(1, len(price_data['t'])):
-        if price_data['adx'][i] > buy_thres and price_data['adx'][i-1] < buy_thres:
+    for i in range(sc.sma_range + 1, len(price_data['t'])):
+        short = price_data['vwap'][i]/price_data['c'][i] > 1 and price_data['sma'][i]/price_data['c'][i] > 1 and price_data['vwap'][i-1]/price_data['c'][i-1] > 1 and price_data['sma'][i-1]/price_data['c'][i-1] > 1
+        buy = price_data['c'][i]/price_data['vwap'][i] > 1 and price_data['c'][i]/price_data['sma'][i] > 1 and price_data['c'][i-1]/price_data['vwap'][i-1] > 1 and price_data['c'][i-1]/price_data['sma'][i-1] > 1
+        if short and not buy and (prev_short_price == 0 or (price_data['c'][i]/prev_short_price > 1.01 and prev_short_open) or (price_data['c'][i]/prev_short_price > 1.01 and prev_short_close)) and ((price_data['vwap'][i]/price_data['c'][i] < 1.005) or (price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1])):
+            df.loc[i, 'buy/sell/hold'] = 'short_open'
+            prev_short_price = price_data['c'][i]
+            prev_short_open = True
+            prev_short_close = False
+        elif short and not buy and (prev_short_price == 0 or (prev_short_price/price_data['c'][i] > 1.01 and prev_short_close) or (prev_short_price/price_data['c'][i] > 1.01 and prev_short_open)) and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'short_close'
+            prev_short_price = price_data['c'][i]
+            prev_short_open = False
+            prev_short_close = True
+        elif buy and not short and (prev_price == 0 or (prev_price/price_data['c'][i] > 1.01 and prev_buy) or (prev_price/price_data['c'][i] > 1.01 and prev_sell)) and ((price_data['c'][i]/price_data['vwap'][i] < 1.01) or (price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1])):
             df.loc[i, 'buy/sell/hold'] = 'buy'
-        elif price_data['adx'][i] < sell_thres and price_data['adx'][i-1] > sell_thres:
+            prev_price = price_data['c'][i]
+            prev_buy = True
+            prev_sell = False
+        elif buy and not short and (prev_price == 0 or (price_data['c'][i]/prev_price > 1.01 and prev_sell) or (price_data['c'][i]/prev_price > 1.01 and prev_buy)) and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'sell'
+            prev_price = price_data['c'][i]
+            prev_buy = False
+            prev_sell = True
+        elif not short and not buy and (prev_price == 0 or (prev_price/price_data['c'][i] > 1.01 and prev_buy) or (prev_price/price_data['c'][i] > 1.01 and prev_sell)) and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'buy'
+            prev_price = price_data['c'][i]
+            prev_buy = True
+            prev_sell = False
+        elif not short and not buy and (prev_price == 0 or (price_data['c'][i]/prev_price > 1.01 and prev_sell) or (price_data['c'][i]/prev_price > 1.01 and prev_buy)) and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'sell'
+            prev_price = price_data['c'][i]
+            prev_buy = False
+            prev_sell = True
+        
+
     return df
 
 # use stochastic to determine if the price is trending
-def get_buy_and_sell_points_stoch(price_data, buy_thres, sell_thres, change_consec, change_diff):
+def get_buy_and_sell_points_shorting(price_data, buy_thres, sell_thres, change_consec, change_diff):
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
     prev_price = 0
     prev_short_price = 0
@@ -232,7 +282,7 @@ def get_buy_and_sell_points_stoch(price_data, buy_thres, sell_thres, change_cons
     for i in range(0, len(price_data['t'])):
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
     for i in range(sc.sma_range, len(price_data['t'])):
-        short = price_data['c'][i] < price_data['sma'][i]
+        short = price_data['vwap'][i] > price_data['c'][i] and price_data['c'][i] < price_data['sma'][i]
         if not short and (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'buy'
             prev_price = price_data['c'][i]
@@ -243,80 +293,58 @@ def get_buy_and_sell_points_stoch(price_data, buy_thres, sell_thres, change_cons
             prev_price = price_data['c'][i]
             prev_buy = False
             prev_sell = True
-        elif short and (prev_short_price == 0 or (price_data['c'][i]/prev_short_price > change_consec and prev_short_open) or (price_data['c'][i]/prev_short_price > change_diff and prev_short_close)) and price_data['slowk'][i] > buy_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+        elif short and (prev_short_price == 0 or (price_data['c'][i]/prev_short_price > change_consec and prev_short_open) or (price_data['c'][i]/prev_short_price > change_diff and prev_short_close)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'short_open'
             prev_short_price = price_data['c'][i]
             prev_short_open = True
             prev_short_close = False
-        elif short and (prev_short_price == 0 or (prev_short_price/price_data['c'][i] > change_consec and prev_short_close) or (prev_short_price/price_data['c'][i] > change_diff and prev_short_open)) and price_data['slowk'][i] < sell_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+        elif short and (prev_short_price == 0 or (prev_short_price/price_data['c'][i] > change_consec and prev_short_close) or (prev_short_price/price_data['c'][i] > change_diff and prev_short_open)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'short_close'
             prev_short_price = price_data['c'][i]
             prev_short_open = False
             prev_short_close = True
     return df
 
-# use bollinger bands to determine if the price is trending
-def get_buy_and_sell_points_bollinger(price_data, bollinger_buy_gap, bollinger_sell_gap, bb_range, change_consec, change_diff):
-    # initialize the data frame that will be used to store the time stamps to buy or sell the ticker and whether it is a 
-    # buy or sell
+def get_buy_and_sell_points_only_up_trend(price_data, buy_thres, sell_thres, change_consec, change_diff):
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
-    # initially everything is a hold
-    last_bb_buy = False
-    last_bb_sell = False
-    last_price = 0
-    
-    for i in range(0, len(price_data['t'])):
-        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
-    for i in range(bb_range + 1, len(price_data['t'])):
-        # if the price is above the upper bollinger band and the previous value was below the upper bollinger band, sell
-        if (last_price == 0 or ((price_data['c'][i]/last_price > change_consec and last_bb_sell) or (price_data['c'][i]/last_price > change_diff and last_bb_buy))) and price_data['upper_bb'][i]/price_data['c'][i] < bollinger_buy_gap and price_data['upper_bb'][i-1]/price_data['c'][i-1] > bollinger_buy_gap:
-            df.loc[i, 'buy/sell/hold'] = 'sell'
-            last_bb_buy = False
-            last_bb_sell = True
-            last_price = price_data['c'][i]
-        # if the price is below the lower bollinger band and the previous value was above the lower bollinger band, buy
-        elif (last_price == 0 or ((last_price/price_data['c'][i] > change_consec and last_bb_buy) or (last_price/price_data['c'][i] > change_diff and last_bb_sell))) and price_data['c'][i]/price_data['lower_bb'][i] < bollinger_sell_gap and price_data['c'][i-1]/price_data['lower_bb'][i-1] > bollinger_sell_gap:
-            df.loc[i, 'buy/sell/hold'] = 'buy'
-            last_bb_buy = True
-            last_bb_sell = False
-            last_price = price_data['c'][i]
-        elif (last_price == 0 or ((last_price/price_data['c'][i] > change_consec and last_bb_buy) or (last_price/price_data['c'][i] > change_diff and last_bb_sell))) and price_data['c'][i] > price_data['lower_bb'][i] and price_data['c'][i-1] < price_data['lower_bb'][i-1] and last_price > price_data['c'][i]:
-            df.loc[i, 'buy/sell/hold'] = 'buy'
-            last_bb_buy = True
-            last_bb_sell = False
-            last_price = price_data['c'][i]
-        elif (last_price == 0 or ((price_data['c'][i]/last_price > change_consec and last_bb_sell) or (price_data['c'][i]/last_price > change_diff and last_bb_buy)))  and price_data['c'][i] < price_data['upper_bb'][i] and price_data['c'][i-1] > price_data['upper_bb'][i-1] and last_price < price_data['c'][i]:
-            df.loc[i, 'buy/sell/hold'] = 'sell'
-            last_bb_buy = False
-            last_bb_sell = True
-            last_price = price_data['c'][i]
-    return df
-
-def get_buy_and_sell_bb_stoch_dynamic(price_data, bb_range, buy_thres, sell_thres, change_factor, buy_constant, sell_constant):
-    
-    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
-
     prev_price = 0
     prev_buy = False
     prev_sell = False
-
+    up_trend = False
     for i in range(0, len(price_data['t'])):
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
-
-    for i in range(bb_range + 1, len(price_data['t'])):
-        change_consec = price_data['atr'][i] / change_factor * 1 + 1
-        change_diff = price_data['atr'][i] / change_factor * 1 + 1
-        if (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] / (price_data['atr'][i] * buy_constant) < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+    for i in range(sc.sma_range, len(price_data['t'])):
+        up_trend = price_data['c'][i] > price_data['vwap'][i] and price_data['c'][i] > price_data['sma'][i]
+        if up_trend and (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'buy'
             prev_price = price_data['c'][i]
             prev_buy = True
             prev_sell = False
-        elif (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] * (price_data['atr'][i] * sell_constant) > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+        elif up_trend and (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'sell'
             prev_price = price_data['c'][i]
             prev_buy = False
             prev_sell = True
-    
+    return df
+
+def get_buy_and_sell_points_all(price_data, buy_thres, sell_thres, change_consec, change_diff):
+    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
+    prev_price = 0
+    prev_buy = False
+    prev_sell = False
+    for i in range(0, len(price_data['t'])):
+        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
+    for i in range(sc.sma_range, len(price_data['t'])):
+        if (prev_price == 0 or (prev_price/price_data['c'][i] > change_consec and prev_buy) or (prev_price/price_data['c'][i] > change_diff and prev_sell)) and price_data['slowk'][i] < buy_thres and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'buy'
+            prev_price = price_data['c'][i]
+            prev_buy = True
+            prev_sell = False
+        elif (prev_price == 0 or (price_data['c'][i]/prev_price > change_consec and prev_sell) or (price_data['c'][i]/prev_price > change_diff and prev_buy)) and price_data['slowk'][i] > sell_thres and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'sell'
+            prev_price = price_data['c'][i]
+            prev_buy = False
+            prev_sell = True
     return df
 
 # simulate the profitability if buying and selling over the time period
@@ -398,12 +426,30 @@ indicator_data = add_all_indicators(price_data)
 # optimize stochastic parameters with optuna
 def stoch_objective(trial, indicator_data):
     stoch_range = trial.suggest_int('stoch_range', 2, int(len(indicator_data['t'])/10))
+    sma_range = trial.suggest_int('sma_range', 2, int(len(indicator_data['t'])/7))
     indicator_data = add_stochastic_data(indicator_data, stoch_range)
-    df = get_buy_and_sell_points_stoch(indicator_data)
+    indicator_data = add_sma_data(indicator_data, sma_range)
+    df = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
     profit = simulate_buying_and_selling(df)
     return profit
 
-df1 = get_buy_and_sell_points_stoch(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+if sc.optimize_params:
+    study = optuna.create_study(direction='maximize')
+    study.optimize(lambda trial: stoch_objective(trial, indicator_data), n_trials=sc.optimization_depth)
+    indicator_data = add_stochastic_data(indicator_data, study.best_params['stoch_range'])
+    indicator_data = add_sma_data(indicator_data, study.best_params['sma_range'])
+    df1 = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+else:
+    df1 = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+
+indicator_data = add_stochastic_data(indicator_data, sc.stoch_range)
+indicator_data = add_sma_data(indicator_data, sc.sma_range)
+
+df2 = get_buy_and_sell_points_only_up_trend(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+
+df3 = get_buy_and_sell_points_all(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+
+df4 = get_buy_and_sell_points_vwap(indicator_data)
 
 # plot the prices over time, highlighting the buy and sell points/short opens and closes on streamlit
 def plot_buy_and_sell_points(df):
@@ -460,7 +506,7 @@ def plot_ema12_ema26(indicator_data):
 def plot_bollinger_bands(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['upper_bb'], mode='lines', name='upperband'))
-    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['sma'], mode='lines', name='middleband'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['bsma'], mode='lines', name='middleband'))
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['lower_bb'], mode='lines', name='lowerband'))
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['c'], mode='lines', name='price'))
     fig.update_layout(title='Bollinger Bands', xaxis_title='Date', yaxis_title='Bollinger Bands')
@@ -486,12 +532,36 @@ def plot_atr(indicator_data):
     fig.update_layout(title='ATR', xaxis_title='Date', yaxis_title='ATR')
     st.plotly_chart(fig)
 
-st.header('Buy and Sell Points stoch')
+def plot_vwap(indicator_data):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['c'], mode='lines', name='price'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['vwap'], mode='lines', name='vwap'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['sma'], mode='lines', name='moving average'))
+    fig.update_layout(title='VWAP', xaxis_title='Date', yaxis_title='VWAP')
+    st.plotly_chart(fig)
+
+plot_vwap(indicator_data)
+st.header('buy and sell points vwap')
+plot_buy_and_sell_points(df4)
+st.header('Buy and Sell Points buy, sell, short')
 plot_buy_and_sell_points(df1)
-st.header('Change in liquidity for stoch')
+st.header('Buy and Sell Points only up trend')
+plot_buy_and_sell_points(df2)
+st.header('Buy and Sell Points all')
+plot_buy_and_sell_points(df3)
+st.header('Change in liquidity vwap')
+plot_investments(simulate_buying_and_selling(df4, True))
+st.header('Change in liquidity including shorting')
 plot_investments(simulate_buying_and_selling(df1, True))
+st.header('Change in liquidity only up trend')
+plot_investments(simulate_buying_and_selling(df2, True))
+st.header('Change in liquidity all')
+plot_investments(simulate_buying_and_selling(df3, True))
 st.header('Profitability')
-st.write('stoch profitability: ', (simulate_buying_and_selling(df1)/(sc.starting_money) * 100 - 100), '%')
+st.write('vwap: ', (simulate_buying_and_selling(df4)/(sc.starting_money) * 100 - 100), '%')
+st.write('buy/sell/short profitability: ', (simulate_buying_and_selling(df1)/(sc.starting_money) * 100 - 100), '%')
+st.write('buy/sell only up trend profitability: ', (simulate_buying_and_selling(df2)/(sc.starting_money) * 100 - 100), '%')
+st.write('buy/sell all profitability: ', (simulate_buying_and_selling(df3)/(sc.starting_money) * 100 - 100), '%')
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
 plot_moving_average(indicator_data)
