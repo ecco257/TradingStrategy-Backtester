@@ -12,6 +12,21 @@ st.title('Strategy 2?')
 # initialize the Finnhub API client
 finnhub_client = fh.Client(api_key=config.API_KEY)
 
+sentiment = finnhub_client.stock_social_sentiment(sc.ticker, dr.from_date_unix, dr.to_date_unix)
+
+for i in range(len(sentiment['twitter'])):
+    sentiment['twitter'][i]['atTime'] = pd.to_datetime(sentiment['twitter'][i]['atTime'])
+st.write(sentiment)
+
+def plot_sentiment(sentiment):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[sentiment['twitter'][i]['atTime'] for i in range(len(sentiment['twitter']))], y=[sentiment['twitter'][j]['positiveMention'] for j in range(len(sentiment['twitter']))], name='positiveMention'))
+    fig.add_trace(go.Scatter(x=[sentiment['twitter'][i]['atTime'] for i in range(len(sentiment['twitter']))], y=[sentiment['twitter'][j]['negativeMention'] for j in range(len(sentiment['twitter']))], name='negativeMention'))
+    st.plotly_chart(fig)
+
+# plot the sentiment
+plot_sentiment(sentiment)
+
 def get_price_data(ticker, interval):
     # load price data
     price_data = finnhub_client.stock_candles(ticker, interval, dr.from_date_unix, dr.to_date_unix)
@@ -192,7 +207,7 @@ def add_sma_data(price_data, sma_range):
     sma = []
     for i in range(0, len(price_data['t'])):
         if i < sma_range:
-            sma.append(0)
+            sma.append(price_data['c'][i])
         else:
             sma.append(sum(price_data['c'][i-sma_range:i])/sma_range)
     price_data['sma'] = sma
@@ -213,7 +228,7 @@ def add_all_indicators(price_data):
     #price_data = add_volume_data(price_data)
     price_data = add_macd_data(price_data)
     price_data = add_bollinger_bands_data(price_data, sc.bb_range)
-    price_data = add_adx_data(price_data, sc.adx_range)
+    # price_data = add_adx_data(price_data, sc.adx_range)
     price_data = add_average_true_range_data(price_data, sc.atr_range)
     price_data = add_sma_data(price_data, sc.sma_range)
     price_data = add_vwap_data(price_data)
@@ -222,50 +237,25 @@ def add_all_indicators(price_data):
 
 def get_buy_and_sell_points_vwap(price_data):
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
-    prev_price = 0
-    prev_short_price = 0
-    prev_buy = False
-    prev_sell = False
-    prev_short_open = False
-    prev_short_close = False
     short = False
-    buy = False
+    buy = False  
+    prev_short_open_price = 0
+    prev_buy_price = 0
     for i in range(0, len(price_data['t'])):
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
     for i in range(sc.sma_range + 1, len(price_data['t'])):
-        short = price_data['vwap'][i]/price_data['c'][i] > 1 and price_data['sma'][i]/price_data['c'][i] > 1 and price_data['vwap'][i-1]/price_data['c'][i-1] > 1 and price_data['sma'][i-1]/price_data['c'][i-1] > 1
-        buy = price_data['c'][i]/price_data['vwap'][i] > 1 and price_data['c'][i]/price_data['sma'][i] > 1 and price_data['c'][i-1]/price_data['vwap'][i-1] > 1 and price_data['c'][i-1]/price_data['sma'][i-1] > 1
-        if short and not buy and (prev_short_price == 0 or (price_data['c'][i]/prev_short_price > 1.01 and prev_short_open) or (price_data['c'][i]/prev_short_price > 1.01 and prev_short_close)) and ((price_data['vwap'][i]/price_data['c'][i] < 1.005) or (price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1])):
-            df.loc[i, 'buy/sell/hold'] = 'short_open'
-            prev_short_price = price_data['c'][i]
-            prev_short_open = True
-            prev_short_close = False
-        elif short and not buy and (prev_short_price == 0 or (prev_short_price/price_data['c'][i] > 1.01 and prev_short_close) or (prev_short_price/price_data['c'][i] > 1.01 and prev_short_open)) and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+        short = price_data['sma'][i]/price_data['c'][i] > 1 and price_data['vwap'][i]/price_data['c'][i] > 1
+        buy = price_data['c'][i]/price_data['sma'][i] > 1 and price_data['c'][i]/price_data['vwap'][i] > 1
+        if short and prev_short_open_price != 0 and prev_short_open_price/price_data['c'][i] > 1.01 and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'short_close'
-            prev_short_price = price_data['c'][i]
-            prev_short_open = False
-            prev_short_close = True
-        elif buy and not short and (prev_price == 0 or (prev_price/price_data['c'][i] > 1.01 and prev_buy) or (prev_price/price_data['c'][i] > 1.01 and prev_sell)) and ((price_data['c'][i]/price_data['vwap'][i] < 1.01) or (price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1])):
-            df.loc[i, 'buy/sell/hold'] = 'buy'
-            prev_price = price_data['c'][i]
-            prev_buy = True
-            prev_sell = False
-        elif buy and not short and (prev_price == 0 or (price_data['c'][i]/prev_price > 1.01 and prev_sell) or (price_data['c'][i]/prev_price > 1.01 and prev_buy)) and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+        elif buy and prev_buy_price != 0 and price_data['c'][i]/prev_buy_price > 1.01 and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'sell'
-            prev_price = price_data['c'][i]
-            prev_buy = False
-            prev_sell = True
-        elif not short and not buy and (prev_price == 0 or (prev_price/price_data['c'][i] > 1.01 and prev_buy) or (prev_price/price_data['c'][i] > 1.01 and prev_sell)) and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+        elif short and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+            df.loc[i, 'buy/sell/hold'] = 'short_open'
+            prev_short_open_price = price_data['c'][i]
+        elif buy and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'buy'
-            prev_price = price_data['c'][i]
-            prev_buy = True
-            prev_sell = False
-        elif not short and not buy and (prev_price == 0 or (price_data['c'][i]/prev_price > 1.01 and prev_sell) or (price_data['c'][i]/prev_price > 1.01 and prev_buy)) and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
-            df.loc[i, 'buy/sell/hold'] = 'sell'
-            prev_price = price_data['c'][i]
-            prev_buy = False
-            prev_sell = True
-        
+            prev_buy_price = price_data['c'][i]
 
     return df
 
@@ -351,14 +341,18 @@ def get_buy_and_sell_points_all(price_data, buy_thres, sell_thres, change_consec
 def simulate_buying_and_selling(df, return_chart=False):
     # initialize the money and the number of stocks
     if return_chart:
-        money_history_df = pd.DataFrame(columns=['t', 'money'])
+        money_history_df = pd.DataFrame(columns=['t', 'money', 'stop_loss', 'short_stop_loss'])
     money = sc.starting_money
     num_stocks = sc.starting_stocks
     num_short_stocks_owed = sc.starting_short_stocks
     money += num_short_stocks_owed * df['price'][0]
     money -= num_stocks * df['price'][0]
     prev_price = 0
+    prev_sell = 0
     prev_short_price = 0
+    prev_short_sell = 0
+    short_stop_loss = False
+    stop_loss = False
     # go through the data frame and simulate buying and selling
     for i in range(0, len(df)):
         if df['buy/sell/hold'][i] == 'buy':
@@ -383,6 +377,13 @@ def simulate_buying_and_selling(df, return_chart=False):
                 money += sc.investment*(1-sc.transaction_fee)
                 num_stocks -= sc.investment/df['price'][i]
             prev_price = df['price'][i]
+            prev_sell = df['price'][i]
+        elif df['buy/sell/hold'][i] == 'big_sell':
+            if num_stocks > 0:
+                money += df['price'][i]*num_stocks*(1-sc.transaction_fee)
+                num_stocks = 0
+            prev_price = df['price'][i]
+            prev_sell = df['price'][i]
         elif df['buy/sell/hold'][i] == 'short_open':
             if prev_short_price != 0:
                 money += (df['price'][i]/prev_short_price)*sc.investment*(1-sc.transaction_fee)
@@ -393,25 +394,49 @@ def simulate_buying_and_selling(df, return_chart=False):
             prev_short_price = df['price'][i]
         elif df['buy/sell/hold'][i] == 'short_close':
             if prev_short_price != 0 and num_short_stocks_owed >= sc.investment/prev_short_price:
-                money -= df['price'][i]/prev_short_price*sc.investment*(1-sc.transaction_fee)
+                money -= df['price'][i]/prev_short_price*sc.investment*(1+sc.transaction_fee)
                 num_short_stocks_owed -= sc.investment/prev_short_price
             elif num_short_stocks_owed > 0 and prev_short_price != 0:
-                money -= df['price'][i]*num_short_stocks_owed*(1-sc.transaction_fee)
+                money -= df['price'][i]*num_short_stocks_owed*(1+sc.transaction_fee)
                 num_short_stocks_owed = 0
             elif num_short_stocks_owed > sc.investment/df['price'][i]:
-                money -= sc.investment*(1-sc.transaction_fee)
+                money -= sc.investment*(1+sc.transaction_fee)
                 num_short_stocks_owed -= sc.investment/df['price'][i]
             prev_short_price = df['price'][i]
+            prev_short_sell = df['price'][i]
+        elif df['buy/sell/hold'][i] == 'big_short_close':
+            if num_short_stocks_owed > 0:
+                money -= df['price'][i]*num_short_stocks_owed*(1+sc.transaction_fee)
+                num_short_stocks_owed = 0
+            prev_short_price = df['price'][i]
+            prev_short_sell = df['price'][i]
+        # stoploss for shorting
+        #if prev_short_sell != 0 and df['price'][i]/prev_short_sell > 1.1 and num_short_stocks_owed > 0:
+        #    money -= num_short_stocks_owed*df['price'][i]*(1+sc.transaction_fee)
+        #    num_short_stocks_owed = 0
+        #    short_stop_loss = True
+        #    prev_short_price = df['price'][i]
+        #    prev_short_sell = df['price'][i]
+        # stoploss for buying
+        #if prev_sell != 0 and prev_sell/df['price'][i] > 1.1 and num_stocks > 0:
+        #    money += num_stocks*df['price'][i]*(1-sc.transaction_fee)
+        #    num_stocks = 0
+        #    stop_loss = True
+        #    prev_price = df['price'][i]
+        #    prev_sell = df['price'][i]
         if return_chart:
-            money_history_df.loc[len(money_history_df)] = [df['time'][i], money]
+            money_history_df.loc[i] = [df['time'][i], money, stop_loss, short_stop_loss]
+        short_stop_loss = False
+        stop_loss = False
+
             
     # at the end of the simulation, sell all stocks, and pay off all short stocks
     money += num_stocks * df['price'][len(df)-1]
     if return_chart:
-        money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 1), money]
+        money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 1), money, False, False]
     money -= num_short_stocks_owed * df['price'][len(df)-1]
     if return_chart:
-        money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 2), money]
+        money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 2), money, False, False]
     if return_chart:
         return money_history_df
     return money
@@ -459,6 +484,8 @@ def plot_buy_and_sell_points(df):
     fig.add_trace(go.Scatter(x=df[df['buy/sell/hold'] == 'sell']['time'], y=df[df['buy/sell/hold'] == 'sell']['price'], mode='markers', name='sell', marker_color='red'))
     fig.add_trace(go.Scatter(x=df[df['buy/sell/hold'] == 'short_open']['time'], y=df[df['buy/sell/hold'] == 'short_open']['price'], mode='markers', name='short_open', marker_color='blue'))
     fig.add_trace(go.Scatter(x=df[df['buy/sell/hold'] == 'short_close']['time'], y=df[df['buy/sell/hold'] == 'short_close']['price'], mode='markers', name='short_close', marker_color='orange'))
+    fig.add_trace(go.Scatter(x=df[df['buy/sell/hold'] == 'big_sell']['time'], y=df[df['buy/sell/hold'] == 'big_sell']['price'], mode='markers', name='sell all', marker_color='darkred'))
+    fig.add_trace(go.Scatter(x=df[df['buy/sell/hold'] == 'big_short_close']['time'], y=df[df['buy/sell/hold'] == 'big_short_close']['price'], mode='markers', name='close all shorts', marker_color='black'))
     fig.update_layout(title='Results', xaxis_title='Date', yaxis_title='Price')
     st.plotly_chart(fig)
 
@@ -521,7 +548,9 @@ def plot_adx(indicator_data):
 
 def plot_investments(money_history):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=[t for t in money_history['t']], y=money_history['money'], mode='lines', name='money'))
+    fig.add_trace(go.Scatter(x=money_history['t'], y=money_history['money'], mode='lines', name='money'))
+    fig.add_trace(go.Scatter(x=money_history[money_history['stop_loss']]['t'], y=money_history[money_history['stop_loss']]['money'], mode='markers', name='stop loss', marker_color='red'))
+    fig.add_trace(go.Scatter(x=money_history[money_history['short_stop_loss']]['t'], y=money_history[money_history['short_stop_loss']]['money'], mode='markers', name='short stop loss', marker_color='orange'))
     fig.update_layout(title='Investments', xaxis_title='Date', yaxis_title='Investments')
     st.plotly_chart(fig)
     
@@ -569,6 +598,5 @@ plot_stochastic_data(indicator_data)
 plot_atr(indicator_data)
 plot_bollinger_bands(indicator_data)
 plot_volume(indicator_data)
-plot_adx(indicator_data)
 plot_macd(indicator_data)
 plot_ema12_ema26(indicator_data)

@@ -1,5 +1,5 @@
-ticker = 'GOOG' # ticker to analyze
-crypto = 'BINANCE:SOLBUSD' # crypto to analyze
+ticker = 'AAPL' # ticker to analyze
+crypto = 'BINANCE:BTCUSDT' # crypto to analyze
 use_crypto = True # if True, the crypto will be analyzed instead of the stock
 interval = '15' # less than a day means only a month of data, valid options are '1' '5' '15' '30' '60' 'D' 'W' 'M'
 transaction_fee = 0.001 # 2% transaction fee default
