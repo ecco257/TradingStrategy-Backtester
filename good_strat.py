@@ -12,21 +12,6 @@ st.title('Strategy 2?')
 # initialize the Finnhub API client
 finnhub_client = fh.Client(api_key=config.API_KEY)
 
-sentiment = finnhub_client.stock_social_sentiment(sc.ticker, dr.from_date_unix, dr.to_date_unix)
-
-for i in range(len(sentiment['twitter'])):
-    sentiment['twitter'][i]['atTime'] = pd.to_datetime(sentiment['twitter'][i]['atTime'])
-st.write(sentiment)
-
-def plot_sentiment(sentiment):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=[sentiment['twitter'][i]['atTime'] for i in range(len(sentiment['twitter']))], y=[sentiment['twitter'][j]['positiveMention'] for j in range(len(sentiment['twitter']))], name='positiveMention'))
-    fig.add_trace(go.Scatter(x=[sentiment['twitter'][i]['atTime'] for i in range(len(sentiment['twitter']))], y=[sentiment['twitter'][j]['negativeMention'] for j in range(len(sentiment['twitter']))], name='negativeMention'))
-    st.plotly_chart(fig)
-
-# plot the sentiment
-plot_sentiment(sentiment)
-
 def get_price_data(ticker, interval):
     # load price data
     price_data = finnhub_client.stock_candles(ticker, interval, dr.from_date_unix, dr.to_date_unix)
@@ -96,20 +81,23 @@ def add_macd_data(price_data):
     ema26 = []
     for i in range(0, len(price_data['t'])):
         if i < 26:
-            ema12.append(0)
-            ema26.append(0)
+            ema12.append(price_data['c'][i])
+            ema26.append(price_data['c'][i])
         else:
-            ema12.append(sum(price_data['c'][i-12:i])/12)
-            ema26.append(sum(price_data['c'][i-26:i])/26)
+            weighted_multiplier12 = 2/(12 + 1)
+            ema12.append(weighted_multiplier12*price_data['c'][i] + (1 - weighted_multiplier12)*ema12[i-1])
+            weighted_multiplier26 = 2/(26 + 1)
+            ema26.append(weighted_multiplier26*price_data['c'][i] + (1 - weighted_multiplier26)*ema26[i-1])
     price_data['ema12'] = ema12
     price_data['ema26'] = ema26
-    price_data['macd'] = [(ema12[i] - ema26[i])/price_data['c'][i] for i in range(0, len(price_data['t']))]
+    price_data['macd'] = [(ema12[i] - ema26[i]) for i in range(0, len(price_data['t']))]
     macavg = []
     for i in range(0, len(price_data['macd'])):
-        if i < 2:
-            macavg.append(0)
+        if i < 9:
+            macavg.append(price_data['macd'][i])
         else:
-            macavg.append(sum(price_data['macd'][i-2:i])/2)
+            weighted_multiplier = 2/(9 + 1)
+            macavg.append(weighted_multiplier*price_data['macd'][i] + (1 - weighted_multiplier)*macavg[i-1])
     price_data['macavg'] = macavg
     return price_data
 
@@ -203,14 +191,16 @@ def add_average_true_range_data(price_data, atr_range):
     price_data['atr_sma'] = atr_sma
     return price_data  
 
-def add_sma_data(price_data, sma_range):
-    sma = []
+# add exponential moving average to the price data
+def add_sma_data(price_data, ema_range):
+    ema = []
     for i in range(0, len(price_data['t'])):
-        if i < sma_range:
-            sma.append(price_data['c'][i])
+        if i < ema_range:
+            ema.append(price_data['c'][i])
         else:
-            sma.append(sum(price_data['c'][i-sma_range:i])/sma_range)
-    price_data['sma'] = sma
+            weighted_multiplier = 2/(ema_range + 1)
+            ema.append((price_data['c'][i]*weighted_multiplier) + (ema[i-1]*(1-weighted_multiplier)))
+    price_data['sma'] = ema
     return price_data
 
 # add volume weighted average price data to the price data
@@ -231,7 +221,7 @@ def add_all_indicators(price_data):
     # price_data = add_adx_data(price_data, sc.adx_range)
     price_data = add_average_true_range_data(price_data, sc.atr_range)
     price_data = add_sma_data(price_data, sc.sma_range)
-    price_data = add_vwap_data(price_data)
+    #price_data = add_vwap_data(price_data)
     return price_data
 
 
@@ -250,10 +240,10 @@ def get_buy_and_sell_points_vwap(price_data):
             df.loc[i, 'buy/sell/hold'] = 'short_close'
         elif buy and prev_buy_price != 0 and price_data['c'][i]/prev_buy_price > 1.01 and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
             df.loc[i, 'buy/sell/hold'] = 'sell'
-        elif short and price_data['slowk'][i] > 80 and price_data['slowk'][i] < price_data['slowd'][i] and price_data['slowk'][i-1] > price_data['slowd'][i-1]:
+        elif short and price_data['vwap'][i]/price_data['c'][i] < 1.01 and price_data['sma'][i]/price_data['c'][i] > 1.01:
             df.loc[i, 'buy/sell/hold'] = 'short_open'
             prev_short_open_price = price_data['c'][i]
-        elif buy and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
+        elif buy and price_data['c'][i]/price_data['vwap'][i] < 1.01 and price_data['c'][i]/price_data['sma'][i] > 1.01:
             df.loc[i, 'buy/sell/hold'] = 'buy'
             prev_buy_price = price_data['c'][i]
 
@@ -464,17 +454,17 @@ if sc.optimize_params:
     indicator_data = add_stochastic_data(indicator_data, study.best_params['stoch_range'])
     indicator_data = add_sma_data(indicator_data, study.best_params['sma_range'])
     df1 = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
-else:
-    df1 = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+#else:
+    #df1 = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
 
 indicator_data = add_stochastic_data(indicator_data, sc.stoch_range)
 indicator_data = add_sma_data(indicator_data, sc.sma_range)
 
-df2 = get_buy_and_sell_points_only_up_trend(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+#df2 = get_buy_and_sell_points_only_up_trend(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
 
-df3 = get_buy_and_sell_points_all(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+#df3 = get_buy_and_sell_points_all(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
 
-df4 = get_buy_and_sell_points_vwap(indicator_data)
+#df4 = get_buy_and_sell_points_vwap(indicator_data)
 
 # plot the prices over time, highlighting the buy and sell points/short opens and closes on streamlit
 def plot_buy_and_sell_points(df):
@@ -569,15 +559,10 @@ def plot_vwap(indicator_data):
     fig.update_layout(title='VWAP', xaxis_title='Date', yaxis_title='VWAP')
     st.plotly_chart(fig)
 
-plot_vwap(indicator_data)
-st.header('buy and sell points vwap')
-plot_buy_and_sell_points(df4)
-st.header('Buy and Sell Points buy, sell, short')
-plot_buy_and_sell_points(df1)
-st.header('Buy and Sell Points only up trend')
-plot_buy_and_sell_points(df2)
-st.header('Buy and Sell Points all')
-plot_buy_and_sell_points(df3)
+# plot_vwap(indicator_data)
+#st.header('Buy and Sell Points buy, sell, short')
+#plot_buy_and_sell_points(df1)
+'''
 st.header('Change in liquidity vwap')
 plot_investments(simulate_buying_and_selling(df4, True))
 st.header('Change in liquidity including shorting')
@@ -591,6 +576,7 @@ st.write('vwap: ', (simulate_buying_and_selling(df4)/(sc.starting_money) * 100 -
 st.write('buy/sell/short profitability: ', (simulate_buying_and_selling(df1)/(sc.starting_money) * 100 - 100), '%')
 st.write('buy/sell only up trend profitability: ', (simulate_buying_and_selling(df2)/(sc.starting_money) * 100 - 100), '%')
 st.write('buy/sell all profitability: ', (simulate_buying_and_selling(df3)/(sc.starting_money) * 100 - 100), '%')
+'''
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
 plot_moving_average(indicator_data)
