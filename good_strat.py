@@ -173,34 +173,79 @@ def add_average_true_range_data(price_data, atr_range):
         if i < 1:
             tr.append(0)
         else:
-            tr.append(max((price_data['h'][i] - price_data['l'][i])/price_data['l'][i], abs(price_data['h'][i] - price_data['c'][i-1])/min(price_data['h'][i], price_data['c'][i-1]), abs(price_data['l'][i] - price_data['c'][i-1])/min(price_data['l'][i], price_data['c'][i-1]))*100)
+            tr.append(max((price_data['h'][i] - price_data['l'][i]), abs(price_data['h'][i] - price_data['c'][i-1]), abs(price_data['l'][i] - price_data['c'][i-1])))
     price_data['tr2'] = tr
     atr = []
     for i in range(0, len(price_data['t'])):
         if i < atr_range:
             atr.append(0)
         else:
-            atr.append(sum(price_data['tr2'][i-atr_range:i])/atr_range)
+            atr.append(sum(price_data['tr2'][i-atr_range:i+1])/atr_range)
     price_data['atr'] = atr
-    atr_sma = []
-    for i in range(0, len(price_data['t'])):
-        if i < 3:
-            atr_sma.append(0)
-        else:
-            atr_sma.append(sum(price_data['atr'][i-3:i])/3)
-    price_data['atr_sma'] = atr_sma
     return price_data  
 
-# add exponential moving average to the price data
+# add simple moving average to the price data
 def add_sma_data(price_data, ema_range):
-    ema = []
+    sma = []
     for i in range(0, len(price_data['t'])):
         if i < ema_range:
-            ema.append(price_data['c'][i])
+            sma.append(None)
         else:
-            weighted_multiplier = 2/(ema_range + 1)
-            ema.append((price_data['c'][i]*weighted_multiplier) + (ema[i-1]*(1-weighted_multiplier)))
-    price_data['sma'] = ema
+            sma.append(sum(price_data['c'][i-ema_range:i])/ema_range)
+    price_data['sma'] = sma
+    return price_data
+
+def add_ichimoku_cloud_data(price_data):
+    if sc.use_crypto:
+        symbol = sc.crypto
+    else:
+        symbol = sc.ticker
+    moving_average9_high = finnhub_client.technical_indicator(symbol, sc.interval, dr.from_date_unix, dr.to_date_unix, 'ema', {'timeperiod': 9, 'seriestype': 'h'})['ema']
+    moving_average9_low = finnhub_client.technical_indicator(symbol, sc.interval, dr.from_date_unix, dr.to_date_unix, 'ema', {'timeperiod': 9, 'seriestype': 'l'})['ema']
+    moving_average26_high = finnhub_client.technical_indicator(symbol, sc.interval, dr.from_date_unix, dr.to_date_unix, 'ema', {'timeperiod': 26, 'seriestype': 'h'})['ema']
+    moving_average26_low = finnhub_client.technical_indicator(symbol, sc.interval, dr.from_date_unix, dr.to_date_unix, 'ema', {'timeperiod': 26, 'seriestype': 'l'})['ema']
+    moving_average52_high = finnhub_client.technical_indicator(symbol, sc.interval, dr.from_date_unix, dr.to_date_unix, 'ema', {'timeperiod': 52, 'seriestype': 'h'})['ema']
+    moving_average52_low = finnhub_client.technical_indicator(symbol, sc.interval, dr.from_date_unix, dr.to_date_unix, 'ema', {'timeperiod': 52, 'seriestype': 'l'})['ema']
+    conversion_line = []
+    base_line = []
+    leading_span_a = []
+    leading_span_b = []
+    lagging_span = []
+    time = []
+    for i in range(0, len(price_data['t']) + 26):
+        if i < len(price_data['t']):
+            time.append(price_data['t'][i])
+            if i < len(price_data['t']) - 26:
+                lagging_span.append(price_data['c'][i+26])
+            if i < 8:
+                conversion_line.append(None)
+            else:
+                conversion_line.append((moving_average9_high[i] + moving_average9_low[i])/2)
+            if i < 25:
+                base_line.append(None)
+            else:
+                base_line.append((moving_average26_high[i] + moving_average26_low[i])/2)
+        else:
+            if sc.interval == 'D':
+                time.append(time[i-1] + 24*60*60)
+            else:
+                time.append(time[i-1] + 60*int(sc.interval))
+
+        if i < 26 + 25:
+            leading_span_a.append(None)
+            leading_span_b.append(None)
+        else:
+            leading_span_a.append((conversion_line[i-26] + base_line[i-26])/2)
+            if i < 52 + 25:
+                leading_span_b.append(None)
+            else:
+                leading_span_b.append((moving_average52_high[i-26] + moving_average52_low[i-26])/2)
+    price_data['conversion_line'] = conversion_line
+    price_data['base_line'] = base_line
+    price_data['leading_span_a'] = leading_span_a
+    price_data['leading_span_b'] = leading_span_b
+    price_data['lagging_span'] = lagging_span
+    price_data['t2'] = time    
     return price_data
 
 # add volume weighted average price data to the price data
@@ -222,6 +267,7 @@ def add_all_indicators(price_data):
     price_data = add_average_true_range_data(price_data, sc.atr_range)
     price_data = add_sma_data(price_data, sc.sma_range)
     #price_data = add_vwap_data(price_data)
+    price_data = add_ichimoku_cloud_data(price_data)
     return price_data
 
 
@@ -327,6 +373,81 @@ def get_buy_and_sell_points_all(price_data, buy_thres, sell_thres, change_consec
             prev_sell = True
     return df
 
+def ichimoku_strat(price_data, reward_to_risk):
+    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
+    in_trade = False
+    short = False
+    buy = False
+    just_got_here = False
+    risky = False
+    for i in range(0, len(price_data['t'])):
+        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
+    for i in range(200, len(price_data['t'])):
+        # 52 + 26 + 25
+        if not in_trade:
+            min_span_now = min(price_data['leading_span_a'][i], price_data['leading_span_b'][i])
+            max_span_now = max(price_data['leading_span_a'][i], price_data['leading_span_b'][i])
+            min_span_26 = min(price_data['leading_span_a'][i-26], price_data['leading_span_b'][i-26])
+            max_span_26 = max(price_data['leading_span_a'][i-26], price_data['leading_span_b'][i-26])
+            if price_data['c'][i] < min_span_now and price_data['lagging_span'][i-26] < min_span_26 and \
+                price_data['leading_span_b'][i+26] > price_data['leading_span_a'][i+26] and \
+                    price_data['conversion_line'][i] < price_data['base_line'][i] and price_data['slowk'][i] > 80:
+                short = True
+                buy = False
+                in_trade = True
+                df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
+                stop_loss_price = max_span_now
+                take_profit_price = price_data['c'][i] * (1-(max_span_now/price_data['c'][i]-1) * reward_to_risk)
+                if not 0 < price_data['c'][i]/take_profit_price < reward_to_risk:
+                    risky = True
+                else:
+                    risky = False
+                just_got_here = True
+            elif price_data['c'][i] > max_span_now and price_data['lagging_span'][i-26] > max_span_26 and \
+                price_data['leading_span_b'][i+26] < price_data['leading_span_a'][i+26] and \
+                    price_data['conversion_line'][i] > price_data['base_line'][i] and price_data['slowk'][i] < 20:
+                buy = True
+                short = False
+                in_trade = True
+                df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
+                stop_loss_price = min_span_now
+                take_profit_price = price_data['c'][i] * ((1 - min_span_now/price_data['c'][i]) * reward_to_risk + 1)
+                if not 0 < take_profit_price/price_data['c'][i] < reward_to_risk:
+                    risky = True
+                else:
+                    risky = False
+                just_got_here = True
+        if in_trade:
+            if not just_got_here:
+                if short and price_data['c'][i] > stop_loss_price:
+                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
+                    in_trade = False
+                    short = False
+                elif short and (price_data['c'][i] < take_profit_price):
+                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
+                    in_trade = False
+                    short = False
+                elif short and risky and price_data['c'][i-26] < price_data['lagging_span'][i-26]:
+                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
+                    in_trade = False
+                    short = False
+                elif buy and price_data['c'][i] < stop_loss_price:
+                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
+                    in_trade = False
+                    buy = False
+                elif buy and (price_data['c'][i] > take_profit_price): #or price_data['c'][i-26] > price_data['lagging_span'][i-26]):
+                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
+                    in_trade = False
+                    buy = False
+                elif buy and risky and price_data['c'][i-26] > price_data['lagging_span'][i-26]:
+                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
+                    in_trade = False
+                    buy = False
+            just_got_here = False
+    return df
+
+
+
 # simulate the profitability if buying and selling over the time period
 def simulate_buying_and_selling(df, return_chart=False):
     # initialize the money and the number of stocks
@@ -346,13 +467,7 @@ def simulate_buying_and_selling(df, return_chart=False):
     # go through the data frame and simulate buying and selling
     for i in range(0, len(df)):
         if df['buy/sell/hold'][i] == 'buy':
-            if prev_price != 0 and money >= sc.investment * prev_price/df['price'][i]:
-                num_stocks += sc.investment*(prev_price/df['price'][i])*(1-sc.transaction_fee)/df['price'][i]
-                money -= sc.investment * (prev_price/df['price'][i])
-            elif money > 0 and prev_price != 0:
-                num_stocks += money*(1-sc.transaction_fee)/df['price'][i]
-                money = 0
-            elif prev_price == 0 and money >= sc.investment:
+            if money > sc.investment:
                 num_stocks += sc.investment*(1-sc.transaction_fee)/df['price'][i]
                 money -= sc.investment
             prev_price = df['price'][i]
@@ -375,12 +490,8 @@ def simulate_buying_and_selling(df, return_chart=False):
             prev_price = df['price'][i]
             prev_sell = df['price'][i]
         elif df['buy/sell/hold'][i] == 'short_open':
-            if prev_short_price != 0:
-                money += (df['price'][i]/prev_short_price)*sc.investment*(1-sc.transaction_fee)
-                num_short_stocks_owed += sc.investment/prev_short_price
-            else:
-                money += sc.investment*(1-sc.transaction_fee)
-                num_short_stocks_owed += sc.investment/df['price'][i]
+            money += sc.investment * (1-sc.transaction_fee)
+            num_short_stocks_owed += sc.investment/df['price'][i]
             prev_short_price = df['price'][i]
         elif df['buy/sell/hold'][i] == 'short_close':
             if prev_short_price != 0 and num_short_stocks_owed >= sc.investment/prev_short_price:
@@ -400,20 +511,6 @@ def simulate_buying_and_selling(df, return_chart=False):
                 num_short_stocks_owed = 0
             prev_short_price = df['price'][i]
             prev_short_sell = df['price'][i]
-        # stoploss for shorting
-        #if prev_short_sell != 0 and df['price'][i]/prev_short_sell > 1.1 and num_short_stocks_owed > 0:
-        #    money -= num_short_stocks_owed*df['price'][i]*(1+sc.transaction_fee)
-        #    num_short_stocks_owed = 0
-        #    short_stop_loss = True
-        #    prev_short_price = df['price'][i]
-        #    prev_short_sell = df['price'][i]
-        # stoploss for buying
-        #if prev_sell != 0 and prev_sell/df['price'][i] > 1.1 and num_stocks > 0:
-        #    money += num_stocks*df['price'][i]*(1-sc.transaction_fee)
-        #    num_stocks = 0
-        #    stop_loss = True
-        #    prev_price = df['price'][i]
-        #    prev_sell = df['price'][i]
         if return_chart:
             money_history_df.loc[i] = [df['time'][i], money, stop_loss, short_stop_loss]
         short_stop_loss = False
@@ -448,17 +545,21 @@ def stoch_objective(trial, indicator_data):
     profit = simulate_buying_and_selling(df)
     return profit
 
+def ichimoku_objective(trial):
+    risk_reward = trial.suggest_float('risk_reward', 1, 3)
+    df = ichimoku_strat(price_data, risk_reward)
+    profit = simulate_buying_and_selling(df)
+    return profit
+
 if sc.optimize_params:
     study = optuna.create_study(direction='maximize')
-    study.optimize(lambda trial: stoch_objective(trial, indicator_data), n_trials=sc.optimization_depth)
-    indicator_data = add_stochastic_data(indicator_data, study.best_params['stoch_range'])
-    indicator_data = add_sma_data(indicator_data, study.best_params['sma_range'])
-    df1 = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
-#else:
-    #df1 = get_buy_and_sell_points_shorting(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
+    study.optimize(ichimoku_objective, n_trials=sc.optimization_depth)
+    df1 = ichimoku_strat(price_data, study.best_params['risk_reward'])
+else:
+    df1 = ichimoku_strat(indicator_data, 2)
 
-indicator_data = add_stochastic_data(indicator_data, sc.stoch_range)
-indicator_data = add_sma_data(indicator_data, sc.sma_range)
+
+
 
 #df2 = get_buy_and_sell_points_only_up_trend(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
 
@@ -547,7 +648,6 @@ def plot_investments(money_history):
 def plot_atr(indicator_data):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['atr'], mode='lines', name='atr'))
-    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['atr_sma'], mode='lines', name='atr average'))
     fig.update_layout(title='ATR', xaxis_title='Date', yaxis_title='ATR')
     st.plotly_chart(fig)
 
@@ -559,24 +659,26 @@ def plot_vwap(indicator_data):
     fig.update_layout(title='VWAP', xaxis_title='Date', yaxis_title='VWAP')
     st.plotly_chart(fig)
 
-# plot_vwap(indicator_data)
-#st.header('Buy and Sell Points buy, sell, short')
-#plot_buy_and_sell_points(df1)
-'''
-st.header('Change in liquidity vwap')
-plot_investments(simulate_buying_and_selling(df4, True))
-st.header('Change in liquidity including shorting')
+def plot_ichimoku(indicator_data):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['c'], mode='lines', name='price', line_color='black'))
+    #fig.add_trace(go.Candlestick(x=[dr.unix_to_date(t) for t in indicator_data['t']], open=indicator_data['o'], high=indicator_data['h'], low=indicator_data['l'], close=indicator_data['c'], name='price'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['conversion_line'], mode='lines', name='conversion line', line_color='blue'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['base_line'], mode='lines', name='base line', line_color='orange'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t2']], y=indicator_data['leading_span_a'], mode='lines', name='leading span a', line_color='green'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t2']], y=indicator_data['leading_span_b'], mode='lines', name='leading span b', line_color='red'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['lagging_span'], mode='lines', name='lagging span', line_color='purple'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['sma'], mode='lines', name='sma', line_color='grey'))
+    fig.update_layout(title='Ichimoku', xaxis_title='Date', yaxis_title='Ichimoku')
+    st.plotly_chart(fig)
+
+plot_ichimoku(indicator_data)
+
+st.header('ichimoku strategy buy and sell points')
+plot_buy_and_sell_points(df1)
+st.header('ichimoku strategy change in liquidity')
 plot_investments(simulate_buying_and_selling(df1, True))
-st.header('Change in liquidity only up trend')
-plot_investments(simulate_buying_and_selling(df2, True))
-st.header('Change in liquidity all')
-plot_investments(simulate_buying_and_selling(df3, True))
-st.header('Profitability')
-st.write('vwap: ', (simulate_buying_and_selling(df4)/(sc.starting_money) * 100 - 100), '%')
-st.write('buy/sell/short profitability: ', (simulate_buying_and_selling(df1)/(sc.starting_money) * 100 - 100), '%')
-st.write('buy/sell only up trend profitability: ', (simulate_buying_and_selling(df2)/(sc.starting_money) * 100 - 100), '%')
-st.write('buy/sell all profitability: ', (simulate_buying_and_selling(df3)/(sc.starting_money) * 100 - 100), '%')
-'''
+st.write('ichimoku strategy profitability: ', (simulate_buying_and_selling(df1)/(sc.starting_money) * 100 - 100), '%')
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
 plot_moving_average(indicator_data)
