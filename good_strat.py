@@ -373,13 +373,14 @@ def get_buy_and_sell_points_all(price_data, buy_thres, sell_thres, change_consec
             prev_sell = True
     return df
 
-def ichimoku_strat(price_data, reward_to_risk):
+def ichimoku_strat(price_data, reward_to_risk, risk_factor):
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
     in_trade = False
     short = False
     buy = False
     just_got_here = False
     risky = False
+    price = 0
     for i in range(0, len(price_data['t'])):
         df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
     for i in range(200, len(price_data['t'])):
@@ -389,6 +390,8 @@ def ichimoku_strat(price_data, reward_to_risk):
             max_span_now = max(price_data['leading_span_a'][i], price_data['leading_span_b'][i])
             min_span_26 = min(price_data['leading_span_a'][i-26], price_data['leading_span_b'][i-26])
             max_span_26 = max(price_data['leading_span_a'][i-26], price_data['leading_span_b'][i-26])
+            #min_span_1 = min(price_data['leading_span_a'][i-1], price_data['leading_span_b'][i-1])
+            #max_span_1 = max(price_data['leading_span_a'][i-1], price_data['leading_span_b'][i-1])
             if price_data['c'][i] < min_span_now and price_data['lagging_span'][i-26] < min_span_26 and \
                 price_data['leading_span_b'][i+26] > price_data['leading_span_a'][i+26] and \
                     price_data['conversion_line'][i] < price_data['base_line'][i] and price_data['slowk'][i] > 80:
@@ -396,9 +399,10 @@ def ichimoku_strat(price_data, reward_to_risk):
                 buy = False
                 in_trade = True
                 df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
+                price = price_data['c'][i]
                 stop_loss_price = max_span_now
                 take_profit_price = price_data['c'][i] * (1-(max_span_now/price_data['c'][i]-1) * reward_to_risk)
-                if not 0 < price_data['c'][i]/take_profit_price < reward_to_risk:
+                if not 0 < price_data['c'][i]/take_profit_price < risk_factor:
                     risky = True
                 else:
                     risky = False
@@ -410,9 +414,10 @@ def ichimoku_strat(price_data, reward_to_risk):
                 short = False
                 in_trade = True
                 df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
+                price = price_data['c'][i]
                 stop_loss_price = min_span_now
                 take_profit_price = price_data['c'][i] * ((1 - min_span_now/price_data['c'][i]) * reward_to_risk + 1)
-                if not 0 < take_profit_price/price_data['c'][i] < reward_to_risk:
+                if not 0 < take_profit_price/price_data['c'][i] < risk_factor:
                     risky = True
                 else:
                     risky = False
@@ -423,11 +428,11 @@ def ichimoku_strat(price_data, reward_to_risk):
                     df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
                     in_trade = False
                     short = False
-                elif short and (price_data['c'][i] < take_profit_price):
+                elif short and (price_data['c'][i] < take_profit_price) and price_data['slowk'][i] < 20:
                     df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
                     in_trade = False
                     short = False
-                elif short and risky and price_data['c'][i-26] < price_data['lagging_span'][i-26]:
+                elif short and risky and (price_data['c'][i-26] < price_data['lagging_span'][i-26] or price_data['slowk'][i] < 20) and price_data['c'][i] < price:
                     df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
                     in_trade = False
                     short = False
@@ -435,11 +440,11 @@ def ichimoku_strat(price_data, reward_to_risk):
                     df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
                     in_trade = False
                     buy = False
-                elif buy and (price_data['c'][i] > take_profit_price): #or price_data['c'][i-26] > price_data['lagging_span'][i-26]):
+                elif buy and (price_data['c'][i] > take_profit_price) and price_data['slowk'][i] > 80: #or price_data['c'][i-26] > price_data['lagging_span'][i-26]):
                     df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
                     in_trade = False
                     buy = False
-                elif buy and risky and price_data['c'][i-26] > price_data['lagging_span'][i-26]:
+                elif buy and risky and (price_data['c'][i-26] > price_data['lagging_span'][i-26] or price_data['slowk'][i] > 80) and price_data['c'][i] > price:
                     df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
                     in_trade = False
                     buy = False
@@ -547,16 +552,17 @@ def stoch_objective(trial, indicator_data):
 
 def ichimoku_objective(trial):
     risk_reward = trial.suggest_float('risk_reward', 1, 3)
-    df = ichimoku_strat(price_data, risk_reward)
+    risk_factor = trial.suggest_float('risk_factor', 1, 2)
+    df = ichimoku_strat(price_data, risk_reward, risk_factor)
     profit = simulate_buying_and_selling(df)
     return profit
 
 if sc.optimize_params:
     study = optuna.create_study(direction='maximize')
     study.optimize(ichimoku_objective, n_trials=sc.optimization_depth)
-    df1 = ichimoku_strat(price_data, study.best_params['risk_reward'])
+    df1 = ichimoku_strat(price_data, study.best_params['risk_reward'], study.best_params['risk_factor'])
 else:
-    df1 = ichimoku_strat(indicator_data, 2)
+    df1 = ichimoku_strat(indicator_data, 1.0418007742793645, 1.7973235079306344)
 
 
 

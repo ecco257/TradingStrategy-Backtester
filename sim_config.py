@@ -1,5 +1,5 @@
-ticker = 'AAPL' # ticker to analyze
-crypto = 'BINANCE:SOLUSDT' # crypto to analyze
+ticker = 'PTON' # ticker to analyze
+crypto = 'BINANCE:BTCUSDT' # crypto to analyze
 use_crypto = True # if True, the crypto will be analyzed instead of the stock
 interval = '15' # less than a day means only a month of data, valid options are '1' '5' '15' '30' '60' 'D' 'W' 'M'
 transaction_fee = 0.001 # 2% transaction fee default
@@ -12,7 +12,7 @@ adx_buy = 20 # default 20
 adx_range = 5 # default 14
 stoch_sell = 80 # default 80
 stoch_buy = 20 # default 20
-stoch_range = 21 # default 14
+stoch_range = 14 # default 14
 bollinger_buy_gap = 1.08 # default 1.08
 bollinger_sell_gap = 1.08 # default 1.08
 bb_range = 20 # default 20
