@@ -1,5 +1,5 @@
-ticker = 'AAPL' # ticker to analyze
-crypto = 'BINANCE:SOLUSDT' # crypto to analyze
+ticker = 'AMZN' # ticker to analyze
+crypto = 'BINANCE:ETHUSDT' # crypto to analyze
 use_crypto = True # if True, the crypto will be analyzed instead of the stock
 interval = '15' # less than a day means only a month of data, valid options are '1' '5' '15' '30' '60' 'D' 'W' 'M'
 transaction_fee = 0.001 # 2% transaction fee default
@@ -22,5 +22,5 @@ change_consec = 1.005 # default 1.005
 change_diff = 1.005 # default 1.001
 consec_factor = 1
 diff_factor = 1
-optimize_params = True # default True
-optimization_depth = 100 # default 100
+optimize_params = False # default True
+optimization_depth = 300 # default 100
