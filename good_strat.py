@@ -285,8 +285,8 @@ def add_all_indicators(price_data):
     add_sma_data(price_data, sc.sma_range)
     st.write('loaded sma data')
     # add_vwap_data(price_data)
-    add_ichimoku_cloud_data(price_data)
-    st.write('loaded ichimoku cloud data')
+    #add_ichimoku_cloud_data(price_data)
+    #st.write('loaded ichimoku cloud data')
     return price_data
 
 def ichimoku_strat(price_data, reward_to_risk, atr_multiplier, atr_percent):
@@ -295,21 +295,13 @@ def ichimoku_strat(price_data, reward_to_risk, atr_multiplier, atr_percent):
     short = False
     buy = False
     just_got_here = False
-    price = 0
-    market_trending = False
     my_bar = st.progress(0.0)
-    # 52 - 26 - 25
     price_sold = 0
     price_closed = 0
-    price_bought = 0
-    price_shorted = 0
     up = False
-    sold_at_loss = False
-    closed_at_loss = False
-    for i in range(500, len(price_data['t'])):
-        my_bar.progress(float(i - 500)/(len(price_data['t']) - 500))
+    for i in range(201, len(price_data['t'])):
+        my_bar.progress(float(i - 200)/(len(price_data['t']) - 200))
         if not in_trade:
-            market_trending = False#not .95 < price_data['sma500'][i]/price_data['c'][i] < 1.05
             if price_data['sma50'][i] > price_data['sma'][i] and price_data['sma50'][i-1] < price_data['sma'][i-1]:
                 price_sold = 0
                 price_closed = 0
@@ -317,271 +309,58 @@ def ichimoku_strat(price_data, reward_to_risk, atr_multiplier, atr_percent):
                 price_closed = 0
                 price_sold = 0
             up = price_data['sma50'][i] > price_data['sma'][i]
-            
-            if market_trending:
-                price_bought = 0
-                price_shorted = 0
-                min_span_now = min(price_data['leading_span_a'][i], price_data['leading_span_b'][i])
-                max_span_now = max(price_data['leading_span_a'][i], price_data['leading_span_b'][i])
-                min_span_26 = min(price_data['leading_span_a'][i-26], price_data['leading_span_b'][i-26])
-                max_span_26 = max(price_data['leading_span_a'][i-26], price_data['leading_span_b'][i-26])
-                #min_span_1 = min(price_data['leading_span_a'][i-1], price_data['leading_span_b'][i-1])
-                #max_span_1 = max(price_data['leading_span_a'][i-1], price_data['leading_span_b'][i-1])
-                if price_data['c'][i] < min_span_now and price_data['lagging_span'][i-26] < min_span_26 and \
-                    price_data['leading_span_b'][i+26] > price_data['leading_span_a'][i+26] and \
-                        price_data['conversion_line'][i] < price_data['base_line'][i] and price_data['slowk'][i] > 80:
-                    short = True
-                    buy = False
-                    in_trade = True
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
-                    price = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] + price_data['atr'][i] * 3.5
-                    take_profit_price = price_data['c'][i] * (1-(stop_loss_price/price_data['c'][i]-1) * reward_to_risk)
-                    just_got_here = True
-                elif price_data['c'][i] > max_span_now and price_data['lagging_span'][i-26] > max_span_26 and \
-                    price_data['leading_span_b'][i+26] < price_data['leading_span_a'][i+26] and \
-                        price_data['conversion_line'][i] > price_data['base_line'][i] and price_data['slowk'][i] < 20:
-                    buy = True
-                    short = False
-                    in_trade = True
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
-                    price = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] - price_data['atr'][i] * 3.5
-                    take_profit_price = price_data['c'][i] * ((1 - stop_loss_price/price_data['c'][i]) * reward_to_risk + 1)
-                    just_got_here = True 
-            else:
-                if not up and price_data['macd'][i] > 0 and price_data['macd'][i] < price_data['macd_signal'][i] and \
-                    price_data['macd'][i-1] > price_data['macd_signal'][i-1] and ((price_data['c'][i] > price_closed or price_closed == 0) or price_data['atr'][i]/price_data['c'][i] > atr_percent):
-                    short = True
-                    buy = False
-                    in_trade = True
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
-                    price = price_data['c'][i]
-                    price_shorted = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] + price_data['atr'][i] * atr_multiplier
-                    take_profit_price = price_data['c'][i] * (1-(stop_loss_price/price_data['c'][i]-1) * reward_to_risk)
-                    just_got_here = True
-                elif up and price_data['macd'][i] < 0 and price_data['macd'][i] > price_data['macd_signal'][i] and \
-                    price_data['macd'][i-1] < price_data['macd_signal'][i-1] and ((price_data['c'][i] < price_sold or price_sold == 0) or price_data['atr'][i]/price_data['c'][i] > atr_percent):
-                    buy = True
-                    short = False
-                    in_trade = True
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
-                    price = price_data['c'][i]
-                    price_bought = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] - price_data['atr'][i] * atr_multiplier
-                    take_profit_price = price_data['c'][i] * ((1 - stop_loss_price/price_data['c'][i]) * reward_to_risk + 1)
-                    just_got_here = True
-        else:
-            if market_trending:
-                if not just_got_here:
-                    if buy and price_data['c'][i] < stop_loss_price:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                        in_trade = False
-                        buy = False
-                        price_closed = 0
-                        price_sold = 0
-                    elif buy and price_data['c'][i] > take_profit_price:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                        in_trade = False
-                        buy = False
-                        price_closed = 0
-                        price_sold = 0
-                    elif short and price_data['c'][i] > stop_loss_price:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                        in_trade = False
-                        short = False
-                        price_closed = 0
-                        price_sold = 0
-                    elif short and price_data['c'][i] < take_profit_price:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                        in_trade = False
-                        short = False
-                        price_closed = 0
-                        price_sold = 0
-            else:
-                if not just_got_here:
-                    if buy and price_data['c'][i] < stop_loss_price and price_data['macd'][i] > 0:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                        in_trade = False
-                        buy = False
-                        sold_at_loss = price_data['c'][i] < price
-                        price_sold = price_data['c'][i]
-                    elif buy and price_data['c'][i] > take_profit_price and price_data['macd'][i] > 0:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                        in_trade = False
-                        buy = False
-                        sold_at_loss = price_data['c'][i] < price
-                        price_sold = price_data['c'][i]
-                    elif buy and price_data['c'][i] < take_profit_price and price_data['c'][i-1] > take_profit_price:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                        in_trade = False
-                        buy = False
-                        sold_at_loss = price_data['c'][i] < price
-                        price_sold = price_data['c'][i]
-                    elif short and price_data['c'][i] > stop_loss_price and price_data['macd'][i] < 0:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                        in_trade = False
-                        short = False
-                        closed_at_loss = price_data['c'][i] > price
-                        price_closed = price_data['c'][i]
-                    elif short and price_data['c'][i] < take_profit_price and price_data['macd'][i] < 0:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                        in_trade = False
-                        short = False
-                        closed_at_loss = price_data['c'][i] > price
-                        price_closed = price_data['c'][i]
-                    elif short and price_data['c'][i] > take_profit_price and price_data['c'][i-1] < take_profit_price:
-                        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                        in_trade = False
-                        short = False
-                        closed_at_loss = price_data['c'][i] > price
-                        price_closed = price_data['c'][i]
-            just_got_here = False
-    return df
-
-def stoch_strat(price_data, reward_to_risk):
-    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
-    in_trade = False
-    buy = False
-    short = False
-    just_got_here = False
-    vwap_hit_down_trend = False
-    vwap_hit_up_trend = False
-    for i in range(0, len(price_data['t'])):
-        df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'hold']
-    for i in range(200, len(price_data['t'])):
-        if not in_trade:
-            atr_relative = price_data['atr'][i]/price_data['vwap'][i]
-            up_trend = price_data['slowk'][i] < 20 and price_data['sma'][i] < price_data['c'][i]
-            down_trend = price_data['slowk'][i] > 80 and price_data['sma'][i] > price_data['c'][i]
-            if up_trend:
-                buy = True
-                short = False
-                in_trade = True
-                just_got_here = True
-                stop_loss_price = price_data['c'][i] - price_data['atr'][i]*reward_to_risk
-                take_profit_price = price_data['c'][i] * ((1 - stop_loss_price/price_data['c'][i]) * reward_to_risk + 1)
-                df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
-            elif down_trend:
+            if not up and price_data['macd'][i] > 0 and price_data['macd'][i] < price_data['macd_signal'][i] and \
+                price_data['macd'][i-1] > price_data['macd_signal'][i-1] and ((price_data['c'][i] > price_closed or price_closed == 0) or price_data['atr'][i]/price_data['c'][i] > atr_percent):
                 short = True
                 buy = False
                 in_trade = True
-                just_got_here = True
-                stop_loss_price = price_data['c'][i] + price_data['atr'][i]*reward_to_risk
+                df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
+                price = price_data['c'][i]
+                stop_loss_price = price_data['c'][i] + price_data['atr'][i] * atr_multiplier
                 take_profit_price = price_data['c'][i] * (1-(stop_loss_price/price_data['c'][i]-1) * reward_to_risk)
-                df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
-        if in_trade:
+                just_got_here = True
+            elif up and price_data['macd'][i] < 0 and price_data['macd'][i] > price_data['macd_signal'][i] and \
+                price_data['macd'][i-1] < price_data['macd_signal'][i-1] and ((price_data['c'][i] < price_sold or price_sold == 0) or price_data['atr'][i]/price_data['c'][i] > atr_percent):
+                buy = True
+                short = False
+                in_trade = True
+                df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
+                price = price_data['c'][i]
+                stop_loss_price = price_data['c'][i] - price_data['atr'][i] * atr_multiplier
+                take_profit_price = price_data['c'][i] * ((1 - stop_loss_price/price_data['c'][i]) * reward_to_risk + 1)
+                just_got_here = True
+        else:
             if not just_got_here:
-                if buy and price_data['c'][i] < stop_loss_price and price_data['slowk'][i] > 80:
-                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                    in_trade = False
-                    buy = False
-                elif buy and price_data['c'][i] > take_profit_price and price_data['slowk'][i] > 80:
-                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                    in_trade = False
-                    buy = False
-                elif buy and price_data['c'][i-1] > take_profit_price and price_data['c'][i] < take_profit_price:
-                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
-                    in_trade = False
-                    buy = False
-                elif short and price_data['c'][i] > stop_loss_price and price_data['slowk'][i] < 20:
-                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                    in_trade = False
-                    short = False
-                elif short and price_data['c'][i] < take_profit_price and price_data['slowk'][i] < 20 and take_profit_price > 0:
-                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                    in_trade = False
-                    short = False
-                elif short and price_data['c'][i-1] < take_profit_price and price_data['c'][i] > take_profit_price and take_profit_price > 0:
-                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                    in_trade = False
-                    short = False
-                elif short and price_data['slowk'][i] < 20 and price_data['slowk'][i] > price_data['slowd'][i] and price_data['slowk'][i-1] < price_data['slowd'][i-1]:
-                    df.loc[i] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
-                    in_trade = False
-                    short = False
-            just_got_here = False
-    return df
-
-def macd_strat(price_data, reward_to_risk, atr_multiplier, trend_range, stoch_buy, stoch_sell):
-    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
-    in_trade = False
-    buy = False
-    short = False
-    just_got_here = False
-    price = 0
-    my_bar = st.progress(0.0)
-    for i in range(200, len(price_data['t'])):
-        my_bar.progress(float(i-200)/(len(price_data['t']) - 200))
-        if not in_trade:
-            if not (1 - trend_range) < price_data['c'][i]/price_data['sma'][i] < (1 + trend_range):
-                no_trend = False
-                up_trend = price_data['sma'][i] < price_data['c'][i]
-                if up_trend and price_data['macd'][i] < 0 and price_data['macd'][i] > price_data['macd_signal'][i] and price_data['macd'][i-1] < price_data['macd_signal'][i-1] and price_data['slowk'][i] < stoch_buy:
-                    buy = True
-                    short = False
-                    in_trade = True
-                    just_got_here = True
-                    price = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] - price_data['atr'][i]* atr_multiplier
-                    take_profit_price = price_data['c'][i] * ((1 - stop_loss_price/price_data['c'][i]) * reward_to_risk + 1)
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
-                elif not up_trend and price_data['macd'][i] > 0 and price_data['macd'][i] < price_data['macd_signal'][i] and price_data['macd'][i-1] > price_data['macd_signal'][i-1] and price_data['slowk'][i] > stoch_sell:
-                    short = True
-                    buy = False
-                    in_trade = True
-                    just_got_here = True
-                    price = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] + price_data['atr'][i] * atr_multiplier
-                    take_profit_price = price_data['c'][i] * (1-(stop_loss_price/price_data['c'][i]-1) * reward_to_risk)
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
-            else:
-                no_trend = True
-                if price_data['slowk'][i] < stoch_buy and price_data['c'][i] > price_data['sma50'][i]:
-                    buy = True
-                    short = False
-                    in_trade = True
-                    just_got_here = True
-                    price = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] - price_data['atr'][i] * atr_multiplier
-                    take_profit_price = price_data['c'][i] * ((1 - stop_loss_price/price_data['c'][i]) * reward_to_risk + 1)
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
-                elif price_data['slowk'][i] > stoch_sell and price_data['c'][i] < price_data['sma50'][i]:
-                    short = True
-                    buy = False
-                    in_trade = True
-                    just_got_here = True
-                    price = price_data['c'][i]
-                    stop_loss_price = price_data['c'][i] + price_data['atr'][i] * atr_multiplier
-                    take_profit_price = price_data['c'][i] * (1-(stop_loss_price/price_data['c'][i]-1) * reward_to_risk)
-                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
-        if in_trade:
-            if not just_got_here:
-                if buy and price_data['c'][i] < stop_loss_price:
+                if buy and price_data['c'][i] < stop_loss_price and price_data['macd'][i] > 0:
                     df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
                     in_trade = False
                     buy = False
-                elif buy and price_data['c'][i] > take_profit_price and price_data['slowk'][i] > stoch_sell:
+                    price_sold = price_data['c'][i]
+                elif buy and price_data['c'][i] > take_profit_price and price_data['macd'][i] > 0:
                     df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
                     in_trade = False
                     buy = False
+                    price_sold = price_data['c'][i]
                 elif buy and price_data['c'][i] < take_profit_price and price_data['c'][i-1] > take_profit_price:
                     df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
                     in_trade = False
                     buy = False
-                elif short and price_data['c'][i] > stop_loss_price:
+                    price_sold = price_data['c'][i]
+                elif short and price_data['c'][i] > stop_loss_price and price_data['macd'][i] < 0:
                     df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
                     in_trade = False
                     short = False
-                elif short and price_data['c'][i] < take_profit_price and price_data['slowk'][i] < stoch_buy:
+                    price_closed = price_data['c'][i]
+                elif short and price_data['c'][i] < take_profit_price and price_data['macd'][i] < 0:
                     df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
                     in_trade = False
                     short = False
+                    price_closed = price_data['c'][i]
                 elif short and price_data['c'][i] > take_profit_price and price_data['c'][i-1] < take_profit_price:
                     df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
                     in_trade = False
                     short = False
+                    price_closed = price_data['c'][i]
             just_got_here = False
     return df
 
@@ -596,10 +375,6 @@ def simulate_buying_and_selling(df, return_chart=False):
     money += num_short_stocks_owed * df['price'][0]
     money -= num_stocks * df['price'][0]
     real_money = money
-    prev_price = 0
-    prev_sell = 0
-    prev_short_price = 0
-    prev_short_sell = 0
     short_stop_loss = False
     stop_loss = False
     wins = 0
@@ -614,25 +389,10 @@ def simulate_buying_and_selling(df, return_chart=False):
                 num_stocks += sc.investment*(1-sc.transaction_fee)/df['price'][i]
                 money -= sc.investment
                 total_trades += 1
-            prev_price = df['price'][i]
-        elif df['buy/sell/hold'][i] == 'sell':
-            if prev_price != 0 and num_stocks >= sc.investment/prev_price:
-                money += df['price'][i]/prev_price*sc.investment*(1-sc.transaction_fee)
-                num_stocks -= sc.investment/prev_price
-            elif num_stocks > 0 and prev_price != 0:
-                money += df['price'][i]*num_stocks*(1-sc.transaction_fee)
-                num_stocks = 0
-            elif num_stocks > sc.investment/df['price'][i]:
-                money += sc.investment*(1-sc.transaction_fee)
-                num_stocks -= sc.investment/df['price'][i]
-            prev_price = df['price'][i]
-            prev_sell = df['price'][i]
         elif df['buy/sell/hold'][i] == 'big_sell':
             if num_stocks > 0:
                 money += df['price'][i]*num_stocks*(1-sc.transaction_fee)
                 num_stocks = 0
-            prev_price = df['price'][i]
-            prev_sell = df['price'][i]
             real_money = money
             if prev_money < money:
                 wins += 1
@@ -643,25 +403,10 @@ def simulate_buying_and_selling(df, return_chart=False):
             total_trades += 1
             money += sc.investment * (1-sc.transaction_fee)
             num_short_stocks_owed += sc.investment/df['price'][i]
-            prev_short_price = df['price'][i]
-        elif df['buy/sell/hold'][i] == 'short_close':
-            if prev_short_price != 0 and num_short_stocks_owed >= sc.investment/prev_short_price:
-                money -= df['price'][i]/prev_short_price*sc.investment*(1+sc.transaction_fee)
-                num_short_stocks_owed -= sc.investment/prev_short_price
-            elif num_short_stocks_owed > 0 and prev_short_price != 0:
-                money -= df['price'][i]*num_short_stocks_owed*(1+sc.transaction_fee)
-                num_short_stocks_owed = 0
-            elif num_short_stocks_owed > sc.investment/df['price'][i]:
-                money -= sc.investment*(1+sc.transaction_fee)
-                num_short_stocks_owed -= sc.investment/df['price'][i]
-            prev_short_price = df['price'][i]
-            prev_short_sell = df['price'][i]
         elif df['buy/sell/hold'][i] == 'big_short_close':
             if num_short_stocks_owed > 0:
                 money -= df['price'][i]*num_short_stocks_owed*(1+sc.transaction_fee)
                 num_short_stocks_owed = 0
-            prev_short_price = df['price'][i]
-            prev_short_sell = df['price'][i]
             real_money = money
             if prev_money < real_money:
                 wins += 1
@@ -674,13 +419,17 @@ def simulate_buying_and_selling(df, return_chart=False):
     # at the end of the simulation, sell all stocks, and pay off all short stocks
     money += num_stocks * df['price'][len(df)-1]
     money -= num_short_stocks_owed * df['price'][len(df)-1]
+    if wins + losses > 0:
+        win_rate = wins/(wins+losses)
+    else:
+        win_rate = 0
     if return_chart:
         money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 1), money, False, False]
-        st.write('win rate: ', wins/(wins+losses) * 100, '%')
+        st.write('win rate: ', win_rate * 100, '%')
         st.write('total trades: ', total_trades)
     if return_chart:
         return money_history_df
-    return money, wins/(wins+losses)
+    return money, win_rate
 
 if sc.use_crypto:
     price_data = get_crypto_price_data(sc.crypto, sc.interval)
@@ -698,35 +447,14 @@ def ichimoku_objective(trial):
     profit = simulate_buying_and_selling(df)[0]
     return profit
 
-def macd_objective(trial):
-    risk_reward = trial.suggest_float('risk_reward', 1.5, 3)
-    atr_multiplier = trial.suggest_float('atr_multiplier', 1, 5)
-    trend_range = trial.suggest_float('trend_range', 0, 0.3)
-    stoch_buy = trial.suggest_float('stoch_buy', 0, 50)
-    stoch_sell = trial.suggest_float('stoch_sell', 50, 100)
-    df = macd_strat(price_data, risk_reward, atr_multiplier, trend_range, stoch_buy, stoch_sell)
-    profit = simulate_buying_and_selling(df)
-    return profit[0]
-
 if sc.optimize_params:
     study = optuna.create_study(direction='maximize')
     study.optimize(ichimoku_objective, n_trials=sc.optimization_depth)
-    df2 = ichimoku_strat(price_data, study.best_params['risk_reward'], study.best_params['atr_multiplier'], study.best_params['atr_percent'])
+    df1 = ichimoku_strat(price_data, study.best_params['risk_reward'], study.best_params['atr_multiplier'], study.best_params['atr_percent'])
 else:
-    df2 = ichimoku_strat(price_data, 1.5, 3.5, .01)
-
-
-#df1 = stoch_strat(price_data, 2)
-df3 = macd_strat(price_data, 1.5, 3.5, 0.1, 20, 80)
+    df1 = ichimoku_strat(price_data, 1.5, 3.5, .01)
 
 st.write('loaded all strategies')
-
-
-#df2 = get_buy_and_sell_points_only_up_trend(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
-
-#df3 = get_buy_and_sell_points_all(indicator_data, sc.stoch_buy, sc.stoch_sell, sc.change_consec, sc.change_diff)
-
-#df4 = get_buy_and_sell_points_vwap(indicator_data)
 
 # plot the prices over time, highlighting the buy and sell points/short opens and closes on streamlit
 def plot_buy_and_sell_points(price_data, df):
@@ -834,29 +562,17 @@ def plot_atr_trailing_stop(indicator_data):
     fig.update_layout(title='ATR Trailing Stop', xaxis_title='Date', yaxis_title='ATR Trailing Stop')
     st.plotly_chart(fig)
 
-st.header('sotch strategy buy and sell points')
-#plot_buy_and_sell_points(df1)
 st.header('ichimoku strategy buy and sell points')
-plot_buy_and_sell_points(price_data, df2)
-st.header('macd strategy buy and sell points')
-plot_buy_and_sell_points(price_data, df3)
-st.header('sotch strategy change in liquidity')
-#plot_investments(simulate_buying_and_selling(df1, True))
+plot_buy_and_sell_points(price_data, df1)
 st.header('ichimoku strategy change in liquidity')
-plot_investments(simulate_buying_and_selling(df2, True))
-st.header('macd strategy change in liquidity')
-plot_investments(simulate_buying_and_selling(df3, True))
-#st.write('sotch strategy profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money) * 100 - 100), '%')
-st.write('ichimoku strategy profitability: ', (simulate_buying_and_selling(df2)[0]/(sc.starting_money) * 100 - 100), '%')
-st.write('macd strategy profitability: ', (simulate_buying_and_selling(df3)[0]/(sc.starting_money) * 100 - 100), '%')
+plot_investments(simulate_buying_and_selling(df1, True))
+st.write('ichimoku strategy profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money) * 100 - 100), '%')
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
 plot_atr_trailing_stop(indicator_data)
-# plot_vwap(indicator_data)
 plot_moving_average(indicator_data)
 plot_stochastic_data(indicator_data)
 plot_atr(indicator_data)
-plot_ichimoku(indicator_data)
 plot_bollinger_bands(indicator_data)
 plot_volume(indicator_data)
 plot_macd(indicator_data)
