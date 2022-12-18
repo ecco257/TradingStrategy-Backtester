@@ -260,11 +260,13 @@ def add_ichimoku_cloud_data(price_data):
     price_data['t2'] = time    
 
 # add volume weighted average price data to the price data
-def add_vwap_data(price_data):
+def add_vwap_data(price_data, percent_increment):
     vwap = []
     day_start_index = 0
     for i in range(0, len(price_data['t'])):
-        if dr.unix_to_date_time(price_data['t'][i]).day != dr.unix_to_date_time(price_data['t'][day_start_index]).day:
+        #if dr.unix_to_date_time(price_data['t'][i]).day != dr.unix_to_date_time(price_data['t'][day_start_index]).day:
+        #    day_start_index = i
+        if i > 0 and not (1 - percent_increment < vwap[i-1]/price_data['c'][i] < 1 + percent_increment):
             day_start_index = i
         vwap.append(sum([(price_data['c'][j] + price_data['h'][j] + price_data['l'][j])/3*price_data['v'][j] for j in range(day_start_index, i+1)])/sum(price_data['v'][day_start_index:i+1]))
     price_data['vwap'] = vwap
@@ -284,10 +286,80 @@ def add_all_indicators(price_data):
     st.write('loaded atr data')
     add_sma_data(price_data, sc.sma_range)
     st.write('loaded sma data')
-    # add_vwap_data(price_data)
+    add_vwap_data(price_data, .1)
+    st.write('loaded vwap data')
     #add_ichimoku_cloud_data(price_data)
     #st.write('loaded ichimoku cloud data')
     return price_data
+
+def macd_vwap_strat(price_data, reward_to_risk, atr_multiplier):
+    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
+    in_trade = False
+    short = False
+    buy = False
+    just_got_here = False
+    my_bar = st.progress(0.0)
+    price_sold = 0
+    price_closed = 0
+    up = False
+    for i in range(201, len(price_data['t'])):
+        my_bar.progress(float(i - 200)/(len(price_data['t']) - 200))
+        if not in_trade:
+            if price_data['macd'][i] < 0 and price_data['c'][i] < price_data['vwap'][i] and price_data['c'][i-1] > price_data['vwap'][i-1] and price_data['sma50'][i] > price_data['sma'][i]:
+                buy = True
+                short = False
+                in_trade = True
+                df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
+                price = price_data['c'][i]
+                stop_loss_price = price_data['c'][i] - price_data['atr'][i] * atr_multiplier
+                take_profit_price = price_data['c'][i] * ((1 - stop_loss_price/price_data['c'][i]) * reward_to_risk + 1)
+                just_got_here = True
+            elif price_data['macd'][i] > 0 and price_data['c'][i] > price_data['vwap'][i] and price_data['c'][i-1] < price_data['vwap'][i-1] and price_data['sma50'][i] < price_data['sma'][i]:
+                buy = False
+                short = True
+                in_trade = True
+                df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'short_open']
+                price = price_data['c'][i]
+                stop_loss_price = price_data['c'][i] + price_data['atr'][i] * atr_multiplier
+                take_profit_price = price_data['c'][i] * (1 - (stop_loss_price/price_data['c'][i] - 1) * reward_to_risk)
+                just_got_here = True
+        else:
+            if not just_got_here:
+                if buy and price_data['c'][i] < stop_loss_price and price_data['macd'][i] > 0:
+                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
+                    in_trade = False
+                    buy = False
+                    price_sold = price_data['c'][i]
+                elif buy and price_data['c'][i] > take_profit_price and price_data['macd'][i] > 0:
+                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
+                    in_trade = False
+                    buy = False
+                    price_sold = price_data['c'][i]
+                elif buy and price_data['c'][i] < take_profit_price and price_data['c'][i-1] > take_profit_price:
+                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
+                    in_trade = False
+                    buy = False
+                    price_sold = price_data['c'][i]
+                elif short and price_data['c'][i] > stop_loss_price and price_data['macd'][i] < 0:
+                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
+                    in_trade = False
+                    short = False
+                    price_closed = price_data['c'][i]
+                elif short and price_data['c'][i] < take_profit_price and price_data['macd'][i] < 0:
+                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
+                    in_trade = False
+                    short = False
+                    price_closed = price_data['c'][i]
+                elif short and price_data['c'][i] > take_profit_price and price_data['c'][i-1] < take_profit_price:
+                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_short_close']
+                    in_trade = False
+                    short = False
+                    price_closed = price_data['c'][i]
+            just_got_here = False
+    # make the last trade a hold
+    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][len(price_data['t']) - 1]), price_data['c'][len(price_data['c']) - 1], 'hold']
+    return df
+
 
 def ichimoku_strat(price_data, reward_to_risk, atr_multiplier, atr_percent):
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
@@ -380,7 +452,6 @@ def simulate_buying_and_selling(df, return_chart=False):
     wins = 0
     losses = 0
     prev_money = 0
-    total_trades = 0
     # go through the data frame and simulate buying and selling
     for i in range(0, len(df)):
         if df['buy/sell/hold'][i] == 'buy':
@@ -388,7 +459,6 @@ def simulate_buying_and_selling(df, return_chart=False):
             if money > sc.investment:
                 num_stocks += sc.investment*(1-sc.transaction_fee)/df['price'][i]
                 money -= sc.investment
-                total_trades += 1
         elif df['buy/sell/hold'][i] == 'big_sell':
             if num_stocks > 0:
                 money += df['price'][i]*num_stocks*(1-sc.transaction_fee)
@@ -400,7 +470,6 @@ def simulate_buying_and_selling(df, return_chart=False):
                 losses += 1
         elif df['buy/sell/hold'][i] == 'short_open':
             prev_money = money
-            total_trades += 1
             money += sc.investment * (1-sc.transaction_fee)
             num_short_stocks_owed += sc.investment/df['price'][i]
         elif df['buy/sell/hold'][i] == 'big_short_close':
@@ -412,7 +481,7 @@ def simulate_buying_and_selling(df, return_chart=False):
                 wins += 1
             else:
                 losses += 1
-        if return_chart:
+        if return_chart and df['buy/sell/hold'][i] != 'hold':
             money_history_df.loc[i] = [df['time'][i], real_money, stop_loss, short_stop_loss]
         short_stop_loss = False
         stop_loss = False            
@@ -424,9 +493,9 @@ def simulate_buying_and_selling(df, return_chart=False):
     else:
         win_rate = 0
     if return_chart:
-        money_history_df.loc[len(money_history_df)] = [dr.unix_to_date(dr.date_to_unix(df['time'][len(df)-1]) + 1), money, False, False]
+        money_history_df.loc[len(money_history_df)] = [df['time'][len(df)-1], money, stop_loss, short_stop_loss]
         st.write('win rate: ', win_rate * 100, '%')
-        st.write('total trades: ', total_trades)
+        st.write('total trades: ', wins + losses)
     if return_chart:
         return money_history_df
     return money, win_rate
@@ -452,7 +521,7 @@ if sc.optimize_params:
     study.optimize(ichimoku_objective, n_trials=sc.optimization_depth)
     df1 = ichimoku_strat(price_data, study.best_params['risk_reward'], study.best_params['atr_multiplier'], study.best_params['atr_percent'])
 else:
-    df1 = ichimoku_strat(price_data, 1.5, 3.5, .01)
+    df1 = macd_vwap_strat(price_data, 1.5, 3)
 
 st.write('loaded all strategies')
 
@@ -569,6 +638,7 @@ plot_investments(simulate_buying_and_selling(df1, True))
 st.write('ichimoku strategy profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money) * 100 - 100), '%')
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
+plot_vwap(indicator_data)
 plot_atr_trailing_stop(indicator_data)
 plot_moving_average(indicator_data)
 plot_stochastic_data(indicator_data)
