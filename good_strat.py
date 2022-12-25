@@ -516,10 +516,20 @@ def ichimoku_objective(trial):
     profit = simulate_buying_and_selling(df)[0]
     return profit
 
+def macd_vwap_objective(trial):
+    risk_reward = trial.suggest_float('risk_reward', 1, 3)
+    atr_multiplier = trial.suggest_float('atr_multiplier', 1, 7)
+    vwap_percent = trial.suggest_float('vwap_percent', 0, 0.5)
+    add_vwap_data(price_data, vwap_percent)
+    df = macd_vwap_strat(price_data, risk_reward, atr_multiplier)
+    profit = simulate_buying_and_selling(df)[0]
+    return profit
+
 if sc.optimize_params:
     study = optuna.create_study(direction='maximize')
-    study.optimize(ichimoku_objective, n_trials=sc.optimization_depth)
-    df1 = ichimoku_strat(price_data, study.best_params['risk_reward'], study.best_params['atr_multiplier'], study.best_params['atr_percent'])
+    study.optimize(macd_vwap_objective, n_trials=sc.optimization_depth)
+    add_vwap_data(price_data, study.best_params['vwap_percent'])
+    df1 = macd_vwap_strat(price_data, study.best_params['risk_reward'], study.best_params['atr_multiplier'])
 else:
     df1 = macd_vwap_strat(price_data, 1.5, 3)
 
