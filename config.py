@@ -1,5 +1,5 @@
 API_KEY = 'cddjbiaad3iag7bhr1pgcddjbiaad3iag7bhr1q0' # This is the API key for the Finnhub API
-delta_time = 1000
+delta_time = 30
 to_date_less = 0
 all_tickers = False # if True, all tickers in the ticker file will be analyzed - WARNING: this will take a long time 
 # because of the API rate limit

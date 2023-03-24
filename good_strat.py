@@ -6,6 +6,7 @@ import sim_config as sc
 import streamlit as st
 from plotly import graph_objs as go
 import optuna
+import ta
 
 st.title('Strategy 2?')
 
@@ -100,9 +101,18 @@ def add_bollinger_bands_data(price_data, bb_range):
             std.append(pd.Series(price_data['c'][i-bb_range:i]).std())
     price_data['std'] = std
     # add the upper bollinger band to the price data
-    price_data['upper_bb'] = [price_data['bsma'][i] + 2*price_data['std'][i] for i in range(bb_range, len(price_data['t']))]
-    # add the lower bollinger band to the price data
-    price_data['lower_bb'] = [price_data['bsma'][i] - 2*price_data['std'][i] for i in range(bb_range, len(price_data['t']))]
+    upper = []
+    lower = []
+    for i in range(len(price_data['t'])):
+        if price_data['bsma'][i] is None:
+            upper.append(None)
+            lower.append(None)
+        else:
+            upper.append(price_data['bsma'][i] + 2*price_data['std'][i])
+            lower.append(price_data['bsma'][i] - 2*price_data['std'][i])
+
+    price_data['upper_bb'] = upper
+    price_data['lower_bb'] = lower
 
 # add the average directional movement index to the price data
 def add_adx_data(price_data, adx_range):
@@ -271,26 +281,68 @@ def add_vwap_data(price_data, percent_increment):
         vwap.append(sum([(price_data['c'][j] + price_data['h'][j] + price_data['l'][j])/3*price_data['v'][j] for j in range(day_start_index, i+1)])/sum(price_data['v'][day_start_index:i+1]))
     price_data['vwap'] = vwap
 
+def add_rsi_data(price_data, rsi_range):
+    # use ta library to calculate rsi
+    if sc.use_crypto:
+        symbol = sc.crypto
+    else:
+        symbol = sc.ticker
+    price_data['rsi'] = finnhub_client.technical_indicator(symbol, sc.interval, dr.from_date_unix, dr.to_date_unix, 'rsi', {'timeperiod': rsi_range})['rsi']
+
 def add_all_indicators(price_data):
-    add_stochastic_data(price_data, sc.stoch_range)
-    st.write('loaded stochastic data')
+    #add_stochastic_data(price_data, sc.stoch_range)
+    #st.write('loaded stochastic data')
     #price_data = add_ease_of_movement_data(price_data)
     #price_data = add_emv_moving_average_data(price_data)
     #price_data = add_volume_data(price_data)
-    add_macd_data(price_data)
-    st.write('loaded macd data')
+    #add_macd_data(price_data)
+    #st.write('loaded macd data')
     add_bollinger_bands_data(price_data, sc.bb_range)
     st.write('loaded bollinger bands data')
     # price_data = add_adx_data(price_data, sc.adx_range)
-    add_average_true_range_data(price_data, sc.atr_range)
-    st.write('loaded atr data')
+    #add_average_true_range_data(price_data, sc.atr_range)
+    #st.write('loaded atr data')
     add_sma_data(price_data, sc.sma_range)
     st.write('loaded sma data')
-    add_vwap_data(price_data, .1)
-    st.write('loaded vwap data')
+    #add_vwap_data(price_data, .1)
+    #st.write('loaded vwap data')
+    add_rsi_data(price_data, sc.rsi_range)
+    st.write('loaded rsi data')
     #add_ichimoku_cloud_data(price_data)
     #st.write('loaded ichimoku cloud data')
     return price_data
+
+def flawless_btc_strat(price_data):
+    df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
+    in_trade = False
+    just_got_here = False
+    open_price = 0
+    RSI_LOWER_BOUND = 30
+    RSI_UPPER_BOUND = 70
+    my_bar = st.progress(0.0)
+    st.write(len(price_data['t']))
+    st.write(len(price_data['sma50']))
+    st.write(len(price_data['sma']))
+    st.write(len(price_data['rsi']))
+    st.write(len(price_data['c']))
+    st.write(len(price_data['lower_bb']))
+    for i in range(201, len(price_data['t'])):
+        my_bar.progress(float(i - 200)/(len(price_data['t']) - 200))
+        if not in_trade:
+            print(i)
+            if price_data['sma50'][i] > price_data['sma'][i] and price_data['rsi'][i] < RSI_LOWER_BOUND and price_data['c'][i] < price_data['lower_bb'][i]:
+                df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'buy']
+                in_trade = True
+                just_got_here = True
+                open_price = price_data['c'][i]
+        else:
+            if just_got_here:
+                just_got_here = False
+            else:
+                if price_data['rsi'][i] > RSI_UPPER_BOUND and price_data['c'][i] > price_data['upper_bb'][i] and (price_data['c'][i]/open_price > 1.001):
+                    df.loc[len(df)] = [dr.unix_to_date(price_data['t'][i]), price_data['c'][i], 'big_sell']
+                    in_trade = False
+    return df
 
 def macd_vwap_strat(price_data, reward_to_risk, atr_multiplier):
     df = pd.DataFrame(columns=['time', 'price', 'buy/sell/hold'])
@@ -456,9 +508,9 @@ def simulate_buying_and_selling(df, return_chart=False):
     for i in range(0, len(df)):
         if df['buy/sell/hold'][i] == 'buy':
             prev_money = money
-            if money > sc.investment:
-                num_stocks += sc.investment*(1-sc.transaction_fee)/df['price'][i]
-                money -= sc.investment
+            if money > 0:
+                num_stocks += money/df['price'][i]
+                money = 0
         elif df['buy/sell/hold'][i] == 'big_sell':
             if num_stocks > 0:
                 money += df['price'][i]*num_stocks*(1-sc.transaction_fee)
@@ -531,7 +583,7 @@ if sc.optimize_params:
     add_vwap_data(price_data, study.best_params['vwap_percent'])
     df1 = macd_vwap_strat(price_data, study.best_params['risk_reward'], study.best_params['atr_multiplier'])
 else:
-    df1 = macd_vwap_strat(price_data, 1.5, 3)
+    df1 = flawless_btc_strat(price_data)
 
 st.write('loaded all strategies')
 
@@ -641,18 +693,25 @@ def plot_atr_trailing_stop(indicator_data):
     fig.update_layout(title='ATR Trailing Stop', xaxis_title='Date', yaxis_title='ATR Trailing Stop')
     st.plotly_chart(fig)
 
-st.header('ichimoku strategy buy and sell points')
+def plot_rsi(indicator_data):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date(t) for t in indicator_data['t']], y=indicator_data['rsi'], mode='lines', name='rsi'))
+    fig.update_layout(title='RSI', xaxis_title='Date', yaxis_title='RSI')
+    st.plotly_chart(fig)
+
+st.header('strategy buy and sell points')
 plot_buy_and_sell_points(price_data, df1)
-st.header('ichimoku strategy change in liquidity')
+st.header('strategy change in liquidity')
 plot_investments(simulate_buying_and_selling(df1, True))
-st.write('ichimoku strategy profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money) * 100 - 100), '%')
+st.write('strategy profitability: ', (simulate_buying_and_selling(df1)[0]/(sc.starting_money) * 100 - 100), '%')
 st.header('Real Change')
 st.write('change in price: ' , (indicator_data['c'][-1] - indicator_data['c'][0]) / indicator_data['c'][0] * 100, '%')
-plot_vwap(indicator_data)
-plot_atr_trailing_stop(indicator_data)
+#plot_vwap(indicator_data)
+#plot_atr_trailing_stop(indicator_data)
 plot_moving_average(indicator_data)
-plot_stochastic_data(indicator_data)
-plot_atr(indicator_data)
+#plot_stochastic_data(indicator_data)
+#plot_atr(indicator_data)
 plot_bollinger_bands(indicator_data)
-plot_volume(indicator_data)
-plot_macd(indicator_data)
+#plot_volume(indicator_data)
+#plot_macd(indicator_data)
+plot_rsi(indicator_data)
