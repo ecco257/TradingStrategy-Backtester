@@ -22,7 +22,7 @@ Trading Strategy backtester and hyperparameter optimizer for crypto and stocks.
   * Step 1: Set the columns of any data you want to keep track of throughout the course of backtesting.
   * Step 2: Update your data (i.e. add on to price history and/or technical indicators data).
   * Step 3: Use your data to decide which orders to place on this tick.
-* Now you can run Backtester.py. It will generate a graph of position over profit/loss over close price, as well as log messages for the strategy and save the results to a csv. 
+* Now you can run Backtester.py. Make sure you are in the project directory in terminal, then enter `python3 Backtester.py`. It will generate a graph of position over profit/loss over close price, as well as log messages for the strategy and save the results to a csv. 
 
 ## Authors
 
