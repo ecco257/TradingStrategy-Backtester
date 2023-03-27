@@ -12,5 +12,5 @@ def getMaxSellQuantity(state: State) -> float:
 def log(msg: str, log_file_name: str):
     # write the message to the log file
     f = open('Logs/' + log_file_name + ".log", "a")
-    f.write('[' + dt.now().strftime("%m/%d/%Y %H:%M:%S") + '] ' + msg + '\n')
+    f.write('[' + dt.now().strftime("%m/%d/%Y %H:%M:%S:%f") + '] ' + msg + '\n')
 
