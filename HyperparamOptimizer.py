@@ -24,7 +24,7 @@ def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS):
     logger = logging.getLogger()
     
     logger.setLevel(logging.INFO)
-    logger.addHandler(logging.FileHandler('HyperOptLogs/' + cfg.STRATEGY_NAME + 'Opt.log', mode='w'))
+    logger.addHandler(logging.FileHandler('Logs/HyperOpt/' + cfg.STRATEGY_NAME + 'Opt.log', mode='w'))
 
     optuna.logging.enable_propagation()  # Propagate logs to the root logger.
     optuna.logging.disable_default_handler()  # Stop showing logs in sys.stderr.
@@ -35,15 +35,14 @@ def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS):
     logger.info('Optimizing hyperparameters for ' + cfg.STRATEGY_NAME)
     study.optimize(objective, n_trials)
 
-    # print the results
-    logger.info('Best trial:')
-    trial = study.best_trial
-    
-    logger.info('  Value: {}'.format(trial.value))
-    
-    logger.info('  Params: ')
-    for key, value in trial.params.items():
-        logger.info('    {}: {}'.format(key, value))
+    # print the results and format it so that it can be copied and pasted into the config file
+    logger.info('Best hyperparameters:')
+    params = study.best_params
+
+    logger.info('STRATEGY_HYPERPARAMETERS = {')
+    for param in params:
+        logger.info('    \'' + param + '\': ' + str(params[param]) + ',')
+    logger.info('}')
 
 if __name__ == '__main__':
     optimizeHyperparameters()
