@@ -13,6 +13,10 @@ def objective(trial):
             cfg.STRATEGY_HYPERPARAMETERS[param] = trial.suggest_int(param, lower_bound, upper_bound)
         elif type(cfg.STRATEGY_HYPERPARAMETERS[param]) == float:
             cfg.STRATEGY_HYPERPARAMETERS[param] = trial.suggest_float(param, lower_bound, upper_bound)
+        elif type(cfg.STRATEGY_HYPERPARAMETERS[param]) == bool:
+            cfg.STRATEGY_HYPERPARAMETERS[param] = trial.suggest_categorical(param, [True, False])
+        else:
+            raise Exception('Hyperparameter type not supported.')
     # get the results
     df = getResults(cfg.STRATEGY_NAME)
     
