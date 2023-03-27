@@ -24,6 +24,11 @@ Trading Strategy backtester and hyperparameter optimizer for crypto and stocks.
   * Step 3: Use your data to decide which orders to place on this tick.
 * Now you can run Backtester.py. Make sure you are in the project directory in terminal, then enter `python3 Backtester.py`. It will generate a graph of position over profit/loss over close price, as well as log messages for the strategy and save the results to a csv. 
 
+## WIP
+
+* Still need to test Limit orders
+* Add hyper optimization using [optuna](https://optuna.org)
+
 ## Authors
 
 [ecco257](https://github.com/ecco257)
