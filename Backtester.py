@@ -19,7 +19,7 @@ def getOHLCV() -> pd.DataFrame:
     
 # get the results of the backtest
 # NOTE: the strategy must be in the strategies folder, and strategy_name excludes the .py extension
-def getResults(strategy_name: str) -> pd.DataFrame:
+def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
     # get the OHLCV data
     df = getOHLCV()
 
@@ -34,7 +34,8 @@ def getResults(strategy_name: str) -> pd.DataFrame:
 
     strat_data = pd.DataFrame()
 
-    log("Starting backtest for " + strategy_name, strategy_name)
+    if log_messages:
+        log("Starting backtest for " + strategy_name, strategy_name)
 
     for i in range(len(df)):
 
@@ -50,7 +51,7 @@ def getResults(strategy_name: str) -> pd.DataFrame:
         state = State(df['t'][i], df['position'][i], df['o'][i], df['h'][i], df['l'][i], df['c'][i], df['v'][i])
 
         # get the orders
-        orders, strat_data = strategy.strategy(state, strat_data)
+        orders, strat_data = strategy.strategy(state, strat_data, cfg.STRATEGY_HYPERPARAMETERS)
 
         short_limit = state.position
         long_limit = state.position
@@ -61,9 +62,10 @@ def getResults(strategy_name: str) -> pd.DataFrame:
                 # execute the market order
                 
                 # check to make sure the order does not exceed the position limit
-                if (order.quantity < 0 and short_limit + order.quantity < -cfg.POSITION_LIMIT) or \
-                    (order.quantity > 0 and long_limit + order.quantity > cfg.POSITION_LIMIT):
-                    log("Order exceeds position limit: " + str(order), strategy_name)
+                if cfg.POSITION_LIMIT > 0 and ((order.quantity < 0 and short_limit + order.quantity < -cfg.POSITION_LIMIT) or \
+                    (order.quantity > 0 and long_limit + order.quantity > cfg.POSITION_LIMIT)):
+                    if log_messages:
+                        log("Order exceeds position limit: " + str(order), strategy_name)
                 else:
                     # execute the order
                     if order.quantity < 0:
@@ -76,9 +78,10 @@ def getResults(strategy_name: str) -> pd.DataFrame:
 
             elif isinstance(order, LimitOrder):
                 # execute the limit order
-                if (order.quantity < 0 and state.position + order.quantity < -cfg.POSITION_LIMIT) or \
-                    (order.quantity > 0 and state.position + order.quantity > cfg.POSITION_LIMIT):
-                    log("Order exceeds position limit: " + str(order), strategy_name)
+                if cfg.POSITION_LIMIT > 0 and ((order.quantity < 0 and state.position + order.quantity < -cfg.POSITION_LIMIT) or \
+                    (order.quantity > 0 and state.position + order.quantity > cfg.POSITION_LIMIT)):
+                    if log_messages:
+                        log("Order exceeds position limit: " + str(order), strategy_name)
                 else:
                     if order.quantity < 0:
                         short_limit += order.quantity
@@ -93,18 +96,39 @@ def getResults(strategy_name: str) -> pd.DataFrame:
                     else:
                         # if the limit order is not filled, then it is a limit order with maker fees
                         df['orders'][i].append(order)
-                        df['trades'][i].append(Trade(order.timestamp, order.quantity, order.price, taker=False))
+                        df['trades'][i].append(Trade(order.timestamp, order.quantity, order.price, is_taker=False))
             else:
                 raise Exception("Invalid order type: " + str(order))
         
         # update the position
         for trade in df['trades'][i]:
             if trade.is_taker:
+                if log_messages:
+                    log("Market order filled (or immediately filled limit order): " + str(trade), strategy_name)
                 df['position'][i] += trade.quantity * (1 - cfg.TAKER_FEE)
         for trade_list in df['trades'][:i]:
             for trade in trade_list:
                 if not trade.is_taker and ((trade.quantity < 0 and df['c'][i] >= trade.price) or (trade.quantity > 0 and df['c'][i] <= trade.price)):
-                    df['position'][i] += trade.quantity * (1 - cfg.MAKER_FEE)
+                    if cfg.POSITION_LIMIT > 0 and not ((trade.quantity < 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMIT) or \
+                    (trade.quantity > 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMIT)):
+                        if log_messages:
+                            log("Limit order filled: " + str(trade), strategy_name)
+                        df['position'][i] += trade.quantity * (1 - cfg.MAKER_FEE)
+                    elif trade.quantity < 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMIT and not df['position'][i] <= -cfg.POSITION_LIMIT:
+                        if log_messages:
+                            log("Limit order partially filled: " + str(trade), strategy_name)
+                        df['position'][i] = -cfg.POSITION_LIMIT
+                    elif trade.quantity > 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMIT and not df['position'][i] >= cfg.POSITION_LIMIT:
+                        if log_messages:
+                            log("Limit order partially filled: " + str(trade), strategy_name)
+                        df['position'][i] = cfg.POSITION_LIMIT
+                    elif cfg.POSITION_LIMIT <= 0:
+                        if log_messages:
+                            log("Limit order filled (no position limit): " + str(trade), strategy_name)
+                        df['position'][i] += trade.quantity * (1 - cfg.MAKER_FEE)
+                    else:
+                        if log_messages:
+                            log("Limit order not filled, exceeds position limit: " + str(trade), strategy_name)
 
     return df
 
@@ -116,10 +140,10 @@ def saveResults(df: pd.DataFrame, strategy_name: str):
 def plotResults(df: pd.DataFrame):
     fig, ax1 = plt.subplots()
 
-    color = 'tab:red'
+    color = 'tab:green'
     ax1.set_xlabel('timestamp')
-    ax1.set_ylabel('price', color=color)
-    ax1.plot(df['t'], df['c'], color=color)
+    ax1.set_ylabel('position', color=color)
+    ax1.plot(df['t'], df['position'], color=color)
     ax1.tick_params(axis='y', labelcolor=color)
 
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -131,22 +155,22 @@ def plotResults(df: pd.DataFrame):
 
     ax3 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
-    color = 'tab:green'
-    ax3.set_ylabel('position', color=color)  # we already handled the x-label with ax1
-    ax3.plot(df['t'], df['position'], color=color)
+    color = 'tab:red'
+    ax3.set_ylabel('price', color=color)  # we already handled the x-label with ax1
+    ax3.plot(df['t'], df['c'], color=color)
     ax3.tick_params(axis='y', labelcolor=color)
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
     plt.show()
 
 # run the backtest
-def run(strategy_name: str):
-    df = getResults(strategy_name)
+def run(strategy_name: str, log_messages: bool = False):
+    df = getResults(strategy_name, log_messages)
     saveResults(df, strategy_name)
     plotResults(df)
 
 # run the backtest
-run(cfg.STRATEGY_NAME)
+run(cfg.STRATEGY_NAME, log_messages=True)
         
 
             
