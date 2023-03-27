@@ -41,10 +41,10 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
 
         if i > 1:
             # update the position
-            df['position'][i] = df['position'][i-1]
+            df.loc[i, 'position'] = df.loc[i-1, 'position']
 
             # update the PnL
-            df['pnl'][i] = df['pnl'][i-1] + df['position'][i-1] * (df['c'][i] - df['c'][i-1])
+            df.loc[i, 'pnl'] = df.loc[i-1, 'pnl'] + df.loc[i, 'position'] * (df.loc[i, 'c'] - df.loc[i-1, 'c'])
 
 
         # get the current state
@@ -105,7 +105,7 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
             if trade.is_taker:
                 if log_messages:
                     log("Market order filled (or immediately filled limit order): " + str(trade), strategy_name)
-                df['position'][i] += trade.quantity * (1 - cfg.TAKER_FEE)
+                df.loc[i, 'position'] += trade.quantity * (1 - cfg.TAKER_FEE)
         for trade_list in df['trades'][:i]:
             for trade in trade_list:
                 if not trade.is_taker and ((trade.quantity < 0 and df['c'][i] >= trade.price) or (trade.quantity > 0 and df['c'][i] <= trade.price)):
@@ -113,19 +113,19 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
                     (trade.quantity > 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMIT)):
                         if log_messages:
                             log("Limit order filled: " + str(trade), strategy_name)
-                        df['position'][i] += trade.quantity * (1 - cfg.MAKER_FEE)
+                        df.loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
                     elif trade.quantity < 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMIT and not df['position'][i] <= -cfg.POSITION_LIMIT:
                         if log_messages:
                             log("Limit order partially filled: " + str(trade), strategy_name)
-                        df['position'][i] = -cfg.POSITION_LIMIT
+                        df.loc[i, 'position'] = -cfg.POSITION_LIMIT
                     elif trade.quantity > 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMIT and not df['position'][i] >= cfg.POSITION_LIMIT:
                         if log_messages:
                             log("Limit order partially filled: " + str(trade), strategy_name)
-                        df['position'][i] = cfg.POSITION_LIMIT
+                        df.loc[i, 'position'] = cfg.POSITION_LIMIT
                     elif cfg.POSITION_LIMIT <= 0:
                         if log_messages:
                             log("Limit order filled (no position limit): " + str(trade), strategy_name)
-                        df['position'][i] += trade.quantity * (1 - cfg.MAKER_FEE)
+                        df.loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
                     else:
                         if log_messages:
                             log("Limit order not filled, exceeds position limit: " + str(trade), strategy_name)
@@ -171,9 +171,3 @@ def run(strategy_name: str, log_messages: bool = False):
 
 # run the backtest
 run(cfg.STRATEGY_NAME, log_messages=True)
-        
-
-            
-
-            
-    
