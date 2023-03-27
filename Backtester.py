@@ -170,4 +170,5 @@ def run(strategy_name: str, log_messages: bool = False):
     plotResults(df)
 
 # run the backtest
-run(cfg.STRATEGY_NAME, log_messages=True)
+if __name__ == "__main__":
+    run(cfg.STRATEGY_NAME, log_messages=True)
