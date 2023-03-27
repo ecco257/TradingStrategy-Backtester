@@ -20,7 +20,7 @@ def objective(trial):
 
 def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS):
     # optimize the hyperparameters
-    study = optuna.create_study()
+    study = optuna.create_study(direction='maximize')
     study.optimize(objective, n_trials)
 
     # print the results
