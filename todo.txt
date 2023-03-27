@@ -1,6 +1,0 @@
-FOR SUNDAY
-clean up the code so that we are only using the newest strategy
-
-IN GENERAL
-find a way to backtest with more data
-set up forward testing with discord bot?
