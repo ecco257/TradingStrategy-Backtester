@@ -2,7 +2,7 @@ from DataTypes import State, LimitOrder, MarketOrder
 from typing import List, Union, Tuple
 import Configuration.config as cfg
 import pandas as pd
-from TradingFunctions import getMaxBuyQuantity, getMaxSellQuantity
+from TradingFunctions import getMaxBuyQuantity, getMaxSellQuantity, log
 from ta import trend, momentum, volatility
 # ^ if you want to use other indicators, you can import them here. refer to https://technical-analysis-library-in-python.readthedocs.io/en/latest/ta.html
 
@@ -21,21 +21,20 @@ def strategy(state: State, data: pd.DataFrame) -> Tuple[List[Union[LimitOrder, M
     # Step 2: Update the data you want to use for your strategy
     # ---------------------------------------------------------------------------------------------
 
-    if len(data) > 0:
-        rsi = momentum.RSIIndicator(data['close_history'], 14, fillna=True).rsi()
-        current_rsi = rsi[len(rsi)-1]
-    else:
-        current_rsi = 50
+    data.loc[len(data)] = [state.close, 50]
 
-    data.loc[len(data)] = [state.close, current_rsi]
+    rsi = momentum.RSIIndicator(data['close_history'], 14, fillna=False).rsi()
+    current_rsi = rsi[len(rsi)-1]
+    log('RSI: ' + str(current_rsi) + ' at ' + str(state.timestamp), cfg.STRATEGY_NAME)
+    data['rsi'][len(data)-1] = current_rsi
 
     # ---------------------------------------------------------------------------------------------
     # Step 3: Make your trading decisions
     # ---------------------------------------------------------------------------------------------
     orders: List[Union[LimitOrder, MarketOrder]] = []
-    if data['rsi'][len(data)-1] < 30:
+    if data['rsi'][len(data)-1] is not None and data['rsi'][len(data)-1] < 30:
         orders.append(MarketOrder(state.timestamp, getMaxBuyQuantity(state)))
-    elif data['rsi'][len(data)-1] > 70:
+    elif data['rsi'][len(data)-1] is not None and data['rsi'][len(data)-1] > 70:
         orders.append(MarketOrder(state.timestamp, -state.position))
 
     return orders, data
