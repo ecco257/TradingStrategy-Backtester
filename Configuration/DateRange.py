@@ -1,4 +1,4 @@
-import Configuration.config as cfg
+import Configuration.Config as cfg
 from datetime import datetime as dt
 import time
 

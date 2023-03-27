@@ -1,9 +1,9 @@
-import Configuration.config as cfg
+import Configuration.Config as cfg
 from typing import List
 from TradingFunctions import log
 import finnhub as fh
 import pandas as pd
-import Configuration.date_range as dr
+import Configuration.DateRange as dr
 from DataTypes import State, LimitOrder, MarketOrder, Trade
 import matplotlib.pyplot as plt
 

@@ -1,4 +1,4 @@
-import Configuration.config as cfg
+import Configuration.Config as cfg
 
 class LimitOrder:
     def __init__(self, timestamp: int, quantity: float, price: float):

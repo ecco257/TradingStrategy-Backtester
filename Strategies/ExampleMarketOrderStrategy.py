@@ -1,6 +1,6 @@
 from DataTypes import State, LimitOrder, MarketOrder
 from typing import List, Union, Tuple
-import Configuration.config as cfg
+import Configuration.Config as cfg
 import pandas as pd
 from TradingFunctions import getMaxBuyQuantity, getMaxSellQuantity, log
 from ta import trend, momentum, volatility
