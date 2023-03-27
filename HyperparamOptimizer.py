@@ -2,6 +2,7 @@ import optuna
 from Backtester import getResults
 import Configuration.config as cfg
 from typing import Dict, Any
+import logging
 
 def objective(trial):
     # get the hyperparameters
@@ -19,19 +20,30 @@ def objective(trial):
     return df['pnl'].iloc[-1]
 
 def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS):
+
+    logger = logging.getLogger()
+    
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.FileHandler('HyperOptLogs/' + cfg.STRATEGY_NAME + 'Opt.log', mode='w'))
+
+    optuna.logging.enable_propagation()  # Propagate logs to the root logger.
+    optuna.logging.disable_default_handler()  # Stop showing logs in sys.stderr.
+
     # optimize the hyperparameters
     study = optuna.create_study(direction='maximize')
+
+    logger.info('Optimizing hyperparameters for ' + cfg.STRATEGY_NAME)
     study.optimize(objective, n_trials)
 
     # print the results
-    print('Best trial:')
+    logger.info('Best trial:')
     trial = study.best_trial
     
-    print('  Value: {}'.format(trial.value))
+    logger.info('  Value: {}'.format(trial.value))
     
-    print('  Params: ')
+    logger.info('  Params: ')
     for key, value in trial.params.items():
-        print('    {}: {}'.format(key, value))
+        logger.info('    {}: {}'.format(key, value))
 
 if __name__ == '__main__':
     optimizeHyperparameters()
