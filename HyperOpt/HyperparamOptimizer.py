@@ -1,12 +1,14 @@
 import optuna
 import sys
-# add the parent directory to the path so that we can import Backtester.py and config.py when running this file directly (in terminal with current directory set to HyperOpt)
+# add the parent directory to the path so that we can import Backtester.py and config.py when running this file directly 
+# (in terminal with current directory set to HyperOpt)
 sys.path[0] += '/..'
 from Backtester import getResults
 import Configuration.Config as cfg
 from typing import Any, Callable, Tuple, List
 import logging
 import pandas as pd
+import os
 from HyperOpt.OptimizeFunctions import *
 
 def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = [byProfit]):
@@ -31,6 +33,9 @@ def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = [
     return optimize_results
 
 def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS, optimize_by_functions: List[Callable[[pd.DataFrame], Any]] = cfg.HYPER_OPT_METHODS):
+
+    if not os.path.exists('../Logs/HyperOpt'):
+        os.makedirs('../Logs/HyperOpt')
 
     logger = logging.getLogger()
     

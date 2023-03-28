@@ -1,11 +1,12 @@
 import Configuration.Config as cfg
-from typing import List
+import os
 from TradingFunctions import log
 import finnhub as fh
 import pandas as pd
 import Configuration.DateRange as dr
 from DataTypes import State, LimitOrder, MarketOrder, Trade
 import matplotlib.pyplot as plt
+import logging
 
 # Set up the API
 finnhub_client = fh.Client(api_key=cfg.API_KEY)
@@ -35,7 +36,12 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
     strat_data = pd.DataFrame()
 
     if log_messages:
-        log("Starting backtest for " + strategy_name, strategy_name)
+        if not os.path.exists('Logs/Backtest'):
+            os.makedirs('Logs/Backtest')
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+        logger.addHandler(logging.FileHandler('Logs/Backtest/' + strategy_name + 'Backtest.log', mode='w'))
+        logger.info('Starting backtest for ' + strategy_name + ' on ' + cfg.CRYPTO_PAIR if cfg.USE_CRYPTO else cfg.STOCK_TICKER + ' from ' + dr.FROM_DATE_UNIX + ' to ' + dr.TO_DATE_UNIX + ' with interval ' + cfg.INTERVAL + ' and position limit ' + str(cfg.POSITION_LIMIT))
 
     for i in range(len(df)):
 
@@ -65,7 +71,7 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
                 if cfg.POSITION_LIMIT > 0 and ((order.quantity < 0 and short_limit + order.quantity < -cfg.POSITION_LIMIT) or \
                     (order.quantity > 0 and long_limit + order.quantity > cfg.POSITION_LIMIT)):
                     if log_messages:
-                        log("Order exceeds position limit: " + str(order), strategy_name)
+                        logger.warning("Order exceeds position limit: " + str(order))
                 else:
                     # execute the order
                     if order.quantity < 0:
@@ -81,7 +87,7 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
                 if cfg.POSITION_LIMIT > 0 and ((order.quantity < 0 and state.position + order.quantity < -cfg.POSITION_LIMIT) or \
                     (order.quantity > 0 and state.position + order.quantity > cfg.POSITION_LIMIT)):
                     if log_messages:
-                        log("Order exceeds position limit: " + str(order), strategy_name)
+                        logger.warning("Order exceeds position limit: " + str(order))
                 else:
                     if order.quantity < 0:
                         short_limit += order.quantity
@@ -104,7 +110,7 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
         for trade in df['trades'][i]:
             if trade.is_taker:
                 if log_messages:
-                    log("Market order filled (or immediately filled limit order): " + str(trade), strategy_name)
+                    logger.info("Market order filled (or immediately filled limit order): " + str(trade))
                 df.loc[i, 'position'] += trade.quantity * (1 - cfg.TAKER_FEE)
         for trade_list in df['trades'][:i]:
             for trade in trade_list:
@@ -112,29 +118,33 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
                     if cfg.POSITION_LIMIT > 0 and not ((trade.quantity < 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMIT) or \
                     (trade.quantity > 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMIT)):
                         if log_messages:
-                            log("Limit order filled: " + str(trade), strategy_name)
+                            logger.info("Limit order filled: " + str(trade))
                         df.loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
                     elif trade.quantity < 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMIT and not df['position'][i] <= -cfg.POSITION_LIMIT:
                         if log_messages:
-                            log("Limit order partially filled: " + str(trade), strategy_name)
+                            logger.warning("Limit order partially filled: " + str(trade))
                         df.loc[i, 'position'] = -cfg.POSITION_LIMIT
                     elif trade.quantity > 0 and df['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMIT and not df['position'][i] >= cfg.POSITION_LIMIT:
                         if log_messages:
-                            log("Limit order partially filled: " + str(trade), strategy_name)
+                            logger.warning("Limit order partially filled: " + str(trade))
                         df.loc[i, 'position'] = cfg.POSITION_LIMIT
                     elif cfg.POSITION_LIMIT <= 0:
                         if log_messages:
-                            log("Limit order filled (no position limit): " + str(trade), strategy_name)
+                            logger.info("Limit order filled: " + str(trade))
                         df.loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
                     else:
                         if log_messages:
-                            log("Limit order not filled, exceeds position limit: " + str(trade), strategy_name)
+                            logger.warning("Limit order not filled, exceeds position limit: " + str(trade))
 
     return df
 
 # save the results of the backtest
 def saveResults(df: pd.DataFrame, strategy_name: str):
-    df.to_csv('BacktestResults/' + strategy_name + 'Results.csv')
+    if os.path.exists('BacktestResults'):
+        df.to_csv('BacktestResults/' + strategy_name + 'Results.csv')
+    else:
+        os.mkdir('BacktestResults')
+        df.to_csv('BacktestResults/' + strategy_name + 'Results.csv')
 
 # plot the results of the backtest
 def plotResults(df: pd.DataFrame):
