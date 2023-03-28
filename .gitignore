@@ -1,3 +1,7 @@
+# Results / Cache
+BacktestResults/
+CachedData/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
