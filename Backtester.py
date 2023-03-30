@@ -11,6 +11,9 @@ import logging
 # Set up the API
 finnhub_client = fh.Client(api_key=cfg.API_KEY)
 
+# Set the timeout to 2 minutes to stop from timeout errors with lots of data
+finnhub_client.DEFAULT_TIMEOUT = 120
+
 # Get OHLCV data
 def getOHLCV() -> pd.DataFrame:
     if cfg.USE_CRYPTO:
