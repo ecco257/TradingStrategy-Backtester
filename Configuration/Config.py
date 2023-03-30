@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 import os
 from HyperOpt.OptimizeFunctions import byMinDrawdown, byProfit
+import pandas as pd
 
 load_dotenv()
 
@@ -23,8 +24,9 @@ STRATEGY_HYPERPARAMETERS = { # a dictionary of hyperparameters to pass to the st
 STRATEGY_HYPERPARAMETER_RANGES = { # a dictionary of hyperparameter ranges to be used when running a hyperparameter optimization
     'spread_pct': (0.001, 0.1),
 }
-HYPER_OPT_TRIALS = 10 # the number of trials to run when doing a hyperparameter optimization
 HYPER_OPT_METHODS = [ # the methods used to optimize the hyperparameters. If one method is used 
     byMinDrawdown,
     byProfit,
 ]
+HYPER_OPT_TRIALS = 100 # the number of trials to run when doing a hyperparameter optimization
+PRICE_DATA: pd.DataFrame = None # the price data to use for hyperparameter optimization so that the api is not called multiple times
