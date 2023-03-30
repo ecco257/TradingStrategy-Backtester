@@ -35,8 +35,8 @@ def strategy(states: Dict[str, State], data: pd.DataFrame, params: Dict[str, Any
 
     # basic ping pong strategy
     if states['BINANCE:BTCUSDT'].position >= 0:
-        orders.append(LimitOrder(states['BINANCE:BTCUSDT'].timestamp, getMaxSellQuantity(states['BINANCE:BTCUSDT']), data['ema'][len(data)-1]*(1+params['spread_pct'])))
+        orders.append(LimitOrder('BINANCE:BTCUSDT', states['BINANCE:BTCUSDT'].timestamp, getMaxSellQuantity(states['BINANCE:BTCUSDT']), data['ema'][len(data)-1]*(1+params['spread_pct'])))
     elif states['BINANCE:BTCUSDT'].position < 0:
-        orders.append(LimitOrder(states['BINANCE:BTCUSDT'].timestamp, getMaxBuyQuantity(states['BINANCE:BTCUSDT']), data['ema'][len(data)-1]*(1-params['spread_pct'])))
+        orders.append(LimitOrder('BINANCE:BTCUSDT', states['BINANCE:BTCUSDT'].timestamp, getMaxBuyQuantity(states['BINANCE:BTCUSDT']), data['ema'][len(data)-1]*(1-params['spread_pct'])))
 
     return orders, data
