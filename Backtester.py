@@ -7,6 +7,7 @@ import Configuration.DateRange as dr
 from DataTypes import State, LimitOrder, MarketOrder, Trade
 import matplotlib.pyplot as plt
 import logging
+from typing import Union
 
 # Set up the API
 finnhub_client = fh.Client(api_key=cfg.API_KEY)
@@ -20,12 +21,28 @@ def getOHLCV() -> pd.DataFrame:
         return pd.DataFrame(finnhub_client.crypto_candles(cfg.CRYPTO_PAIR, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX))
     else:
         return pd.DataFrame(finnhub_client.stock_candles(cfg.STOCK_TICKER, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX))
-    
+
 # get the results of the backtest
 # NOTE: the strategy must be in the strategies folder, and strategy_name excludes the .py extension
-def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
+def getResults(strategy_name: str, log_messages: bool = False, price_df: Union[pd.DataFrame, None] = None) -> pd.DataFrame:
+    if log_messages:
+        if not os.path.exists('Logs/Backtest'):
+            os.makedirs('Logs/Backtest')
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+        logger.addHandler(logging.FileHandler('Logs/Backtest/' + strategy_name + 'Backtest.log', mode='w'))
+        logger.info('Starting backtest for ' + strategy_name + ' on ' + cfg.CRYPTO_PAIR if cfg.USE_CRYPTO else cfg.STOCK_TICKER + ' from ' + dr.FROM_DATE_UNIX + ' to ' + dr.TO_DATE_UNIX + ' with interval ' + cfg.INTERVAL + ' and position limit ' + str(cfg.POSITION_LIMIT))
+
+    
     # get the OHLCV data
-    df = getOHLCV()
+    if price_df is None:
+        if log_messages:
+            logger.info('Getting OHLCV data from Finnhub')
+        df = getOHLCV()
+    else:
+        if log_messages:
+            logger.info('Using OHLCV data from passed DataFrame')
+        df = price_df
 
     # import the strategy
     strategy = __import__('Strategies.' + strategy_name, fromlist=['strategy'])
@@ -37,14 +54,6 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
     df['pnl'] = [0 for i in range(len(df))]
 
     strat_data = pd.DataFrame()
-
-    if log_messages:
-        if not os.path.exists('Logs/Backtest'):
-            os.makedirs('Logs/Backtest')
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
-        logger.addHandler(logging.FileHandler('Logs/Backtest/' + strategy_name + 'Backtest.log', mode='w'))
-        logger.info('Starting backtest for ' + strategy_name + ' on ' + cfg.CRYPTO_PAIR if cfg.USE_CRYPTO else cfg.STOCK_TICKER + ' from ' + dr.FROM_DATE_UNIX + ' to ' + dr.TO_DATE_UNIX + ' with interval ' + cfg.INTERVAL + ' and position limit ' + str(cfg.POSITION_LIMIT))
 
     for i in range(len(df)):
 
