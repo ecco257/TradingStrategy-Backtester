@@ -135,7 +135,6 @@ def getResults(strategy_name: str, log_messages: bool = False) -> pd.DataFrame:
                     else:
                         if log_messages:
                             logger.warning("Limit order not filled, exceeds position limit: " + str(trade))
-
     return df
 
 # save the results of the backtest
@@ -153,21 +152,21 @@ def plotResults(df: pd.DataFrame):
     color = 'tab:green'
     ax1.set_xlabel('timestamp')
     ax1.set_ylabel('position', color=color)
-    ax1.plot(df['t'], df['position'], color=color)
+    ax1.plot([dr.unix_to_date_time(time) for time in df['t']], df['position'], color=color)
     ax1.tick_params(axis='y', labelcolor=color)
 
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
     color = 'tab:blue'
     ax2.set_ylabel('PNL', color=color)  # we already handled the x-label with ax1
-    ax2.plot(df['t'], df['pnl'], color=color)
+    ax2.plot([dr.unix_to_date_time(time) for time in df['t']], df['pnl'], color=color)
     ax2.tick_params(axis='y', labelcolor=color)
 
     ax3 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
     color = 'tab:red'
     ax3.set_ylabel('price', color=color)  # we already handled the x-label with ax1
-    ax3.plot(df['t'], df['c'], color=color)
+    ax3.plot([dr.unix_to_date_time(time) for time in df['t']], df['c'], color=color)
     ax3.tick_params(axis='y', labelcolor=color)
 
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
