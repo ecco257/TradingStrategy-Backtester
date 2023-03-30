@@ -1,6 +1,5 @@
 import Configuration.Config as cfg
 import os
-from TradingFunctions import log
 import finnhub as fh
 import pandas as pd
 import Configuration.DateRange as dr
