@@ -1,11 +1,8 @@
 import Configuration.Config as cfg
 
 class LimitOrder:
-    def __init__(self, timestamp: int, quantity: float, price: float):
-        if cfg.USE_CRYPTO:
-            self.security = cfg.CRYPTO_PAIR
-        else:
-            self.security = cfg.STOCK_TICKER
+    def __init__(self, security: str, timestamp: int, quantity: float, price: float):
+        self.security = security
         self.timestamp = timestamp
         self.quantity = quantity
         self.price = price
@@ -17,11 +14,8 @@ class LimitOrder:
         return "LimitOrder(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ", " + str(self.price) + ")"
     
 class MarketOrder:
-    def __init__(self, timestamp: int, quantity: float):
-        if cfg.USE_CRYPTO:
-            self.security = cfg.CRYPTO_PAIR
-        else:
-            self.security = cfg.STOCK_TICKER
+    def __init__(self, security: str, timestamp: int, quantity: float):
+        self.security = security
         self.timestamp = timestamp
         self.quantity = quantity
 
@@ -32,11 +26,8 @@ class MarketOrder:
         return "MarketOrder(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ")"
     
 class Trade:
-    def __init__(self, timestamp: int, quantity: float, price: float, is_taker: bool = True):
-        if cfg.USE_CRYPTO:
-            self.security = cfg.CRYPTO_PAIR
-        else:
-            self.security = cfg.STOCK_TICKER
+    def __init__(self, security: str, timestamp: int, quantity: float, price: float, is_taker: bool = True):
+        self.security = security
         self.timestamp = timestamp
         self.quantity = quantity
         self.price = price
@@ -49,11 +40,8 @@ class Trade:
         return "Trade(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ", " + str(self.price) + ")"
     
 class State:
-    def __init__(self, timestamp: int, position: float, open: float, high: float, low: float, close: float, volume: float):
-        if cfg.USE_CRYPTO:
-            self.security = cfg.CRYPTO_PAIR
-        else:
-            self.security = cfg.STOCK_TICKER
+    def __init__(self, security: str, timestamp: int, position: float, open: float, high: float, low: float, close: float, volume: float):
+        self.security = security
         self.timestamp = timestamp
         self.position = position
         self.open = open

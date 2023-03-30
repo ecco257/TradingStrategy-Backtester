@@ -4,10 +4,10 @@ from datetime import datetime as dt
 import os
 
 def getMaxBuyQuantity(state: State) -> float:
-    return cfg.POSITION_LIMIT - state.position if cfg.POSITION_LIMIT > 0 else 100
+    return cfg.POSITION_LIMITS[state.security] - state.position if cfg.POSITION_LIMITS[state.security] > 0 else 100
 
 def getMaxSellQuantity(state: State) -> float:
-    return -(state.position + cfg.POSITION_LIMIT) if cfg.POSITION_LIMIT > 0 else -100
+    return -(state.position + cfg.POSITION_LIMITS[state.security]) if cfg.POSITION_LIMITS[state.security] > 0 else -100
 
 def log(msg: str, log_file_name: str):
     # write the message to the log file
