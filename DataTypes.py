@@ -1,4 +1,5 @@
 import Configuration.Config as cfg
+from typing import Union
 
 class LimitOrder:
     def __init__(self, security: str, timestamp: int, quantity: float, price: float):
@@ -26,12 +27,13 @@ class MarketOrder:
         return "MarketOrder(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ")"
     
 class Trade:
-    def __init__(self, security: str, timestamp: int, quantity: float, price: float, is_taker: bool = True):
+    def __init__(self, security: str, timestamp: int, quantity: float, price: float, is_taker: bool = True, filled: Union[int, None] = None):
         self.security = security
         self.timestamp = timestamp
         self.quantity = quantity
         self.price = price
         self.is_taker = is_taker
+        self.filled = filled
 
     def __str__(self):
         return "Trade for " + str(self.quantity) + " " + self.security + " at " + str(self.price) + " on timestamp " + str(self.timestamp)
