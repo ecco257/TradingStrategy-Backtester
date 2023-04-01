@@ -23,6 +23,18 @@ def getOHLCV() -> Dict[str, pd.DataFrame]:
     else:
         return {ticker: pd.DataFrame(finnhub_client.stock_candles(ticker, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX)) for ticker in cfg.STOCK_TICKERS}
 
+def align_dataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    # Find the set of timestamps that are shared across all dataframes
+    common_timestamps = sorted(set.intersection(*[set(df['t']) for df in dataframes.values()]))
+
+    # Filter out any rows in each dataframe that don't have a timestamp in the common set
+    aligned_dataframes = {}
+    for key, df in dataframes.items():
+        aligned_df = df[df['t'].isin(common_timestamps)].reset_index(drop=True)
+        aligned_dataframes[key] = aligned_df
+
+    return aligned_dataframes
+
 # get the results of the backtest
 # NOTE: the strategy must be in the strategies folder, and strategy_name excludes the .py extension
 def getResults(strategy_name: str, log_messages: bool = False, price_data: Union[Dict[str, pd.DataFrame], None] = cfg.PRICE_DATA) -> pd.DataFrame:
