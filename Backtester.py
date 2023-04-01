@@ -56,6 +56,9 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Union
             logger.info('Using OHLCV data from passed DataFrame')
         dataframes = price_data
 
+    # align the timestamps and remove any timestamps that are not shared across all dataframes
+    dataframes = align_dataframes(dataframes)
+
     # import the strategy
     strategy = __import__('Strategies.' + strategy_name, fromlist=['strategy'])
 
@@ -69,101 +72,104 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Union
 
     strat_data = pd.DataFrame()
 
-    for symbol in dataframes:
-        if symbol in cfg.SYMBOLS_TO_BE_TRADED:
-            if log_messages:
-                logger.info('Starting backtest for ' + symbol)
-
-            for i in range(len(dataframes[symbol])):
-
-                if i > 1:
-                    # update the position
-                    dataframes[symbol].loc[i, 'position'] = dataframes[symbol].loc[i-1, 'position']
-
-                    # update the PnL
-                    dataframes[symbol].loc[i, 'pnl'] = dataframes[symbol].loc[i-1, 'pnl'] + dataframes[symbol].loc[i, 'position'] * (dataframes[symbol].loc[i, 'c'] - dataframes[symbol].loc[i-1, 'c'])
-
-                states = {symbol: State(symbol, dataframes[symbol].loc[i, 't'], dataframes[symbol].loc[i, 'position'], dataframes[symbol].loc[i, 'o'], dataframes[symbol].loc[i, 'h'], dataframes[symbol].loc[i, 'l'], dataframes[symbol].loc[i, 'c'], dataframes[symbol].loc[i, 'v']) for symbol in dataframes}
-
-                # get the orders
-                orders, strat_data = strategy.strategy(states, strat_data, cfg.STRATEGY_HYPERPARAMETERS)
-
-                short_limit = states[symbol].position
-                long_limit = states[symbol].position
-
-                # execute the orders
-                for order in orders:
-                    if isinstance(order, MarketOrder):
-                        # execute the market order
-                        
-                        # check to make sure the order does not exceed the position limit
-                        if cfg.POSITION_LIMITS[symbol] > 0 and ((order.quantity < 0 and short_limit + order.quantity < -cfg.POSITION_LIMITS[symbol]) or \
-                            (order.quantity > 0 and long_limit + order.quantity > cfg.POSITION_LIMITS[symbol])):
-                            if log_messages:
-                                logger.warning("Order exceeds position limit: " + str(order))
-                        else:
-                            # execute the order
-                            if order.quantity < 0:
-                                short_limit += order.quantity
-                            else:
-                                long_limit += order.quantity
-
-                            dataframes[symbol]['orders'][i].append(order)
-                            dataframes[symbol]['trades'][i].append(Trade(symbol, order.timestamp, order.quantity, dataframes[symbol]['c'][i]))                    
-
-                    elif isinstance(order, LimitOrder):
-                        # execute the limit order
-                        if cfg.POSITION_LIMITS[symbol] > 0 and ((order.quantity < 0 and states[symbol].position + order.quantity < -cfg.POSITION_LIMITS[symbol]) or \
-                            (order.quantity > 0 and states[symbol].position + order.quantity > cfg.POSITION_LIMITS[symbol])):
-                            if log_messages:
-                                logger.warning("Order exceeds position limit: " + str(order))
-                        else:
-                            if order.quantity < 0:
-                                short_limit += order.quantity
-                            else:
-                                long_limit += order.quantity
-
-                            # check if the limit order is filled, if it is filled, then this is a market order with taker fees
-                            if (order.quantity < 0 and dataframes[symbol]['c'][i] <= order.price) or \
-                                (order.quantity > 0 and dataframes[symbol]['c'][i] >= order.price):
-                                dataframes[symbol]['orders'][i].append(order)
-                                dataframes[symbol]['trades'][i].append(Trade(symbol, order.timestamp, order.quantity, dataframes[symbol]['c'][i]))
-                            else:
-                                # if the limit order is not filled, then it is a limit order with maker fees
-                                dataframes[symbol]['orders'][i].append(order)
-                                dataframes[symbol]['trades'][i].append(Trade(symbol, order.timestamp, order.quantity, order.price, is_taker=False))
-                    else:
-                        raise Exception("Invalid order type: " + str(order))
-                
+    for i in range(len(dataframes[cfg.SYMBOLS_TO_BE_TRADED[0]])):
+        if i > 1:
+            # update the positions and PnL
+            for symbol in dataframes:
                 # update the position
-                for trade in dataframes[symbol]['trades'][i]:
-                    if trade.is_taker:
-                        if log_messages:
-                            logger.info("Market order filled (or immediately filled limit order): " + str(trade))
-                        dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.TAKER_FEE)
-                for trade_list in dataframes[symbol]['trades'][:i]:
-                    for trade in trade_list:
-                        if not trade.is_taker and ((trade.quantity < 0 and dataframes[symbol]['c'][i] >= trade.price) or (trade.quantity > 0 and dataframes[symbol]['c'][i] <= trade.price)):
-                            if cfg.POSITION_LIMITS[symbol] > 0 and not ((trade.quantity < 0 and dataframes[symbol]['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMITS[symbol]) or \
-                            (trade.quantity > 0 and dataframes[symbol]['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMITS[symbol])):
+                dataframes[symbol].loc[i, 'position'] = dataframes[symbol].loc[i-1, 'position']
+
+                # update the PnL
+                dataframes[symbol].loc[i, 'pnl'] = dataframes[symbol].loc[i-1, 'pnl'] + dataframes[symbol].loc[i, 'position'] * (dataframes[symbol].loc[i, 'c'] - dataframes[symbol].loc[i-1, 'c'])
+            
+        states = {symbol: State(symbol, dataframes[symbol].loc[i, 't'], dataframes[symbol].loc[i, 'position'], dataframes[symbol].loc[i, 'o'], dataframes[symbol].loc[i, 'h'], dataframes[symbol].loc[i, 'l'], dataframes[symbol].loc[i, 'c'], dataframes[symbol].loc[i, 'v']) for symbol in dataframes}
+
+        # get the orders
+        orders, strat_data = strategy.strategy(states, strat_data, cfg.STRATEGY_HYPERPARAMETERS)
+
+        short_limits = {symbol: states[symbol].position for symbol in states}
+        long_limits = {symbol: states[symbol].position for symbol in states}
+
+        # execute the orders
+        for order in orders:
+            symbol = order.security
+            if isinstance(order, MarketOrder):
+                # execute the market order
+                
+                # check to make sure the order does not exceed the position limit
+                if cfg.POSITION_LIMITS[symbol] > 0 and ((order.quantity < 0 and short_limits[symbol] + order.quantity < -cfg.POSITION_LIMITS[symbol]) or \
+                    (order.quantity > 0 and long_limits[symbol] + order.quantity > cfg.POSITION_LIMITS[symbol])):
+                    if log_messages:
+                        logger.warning("Order exceeds position limit: " + str(order))
+                else:
+                    # execute the order
+                    if order.quantity < 0:
+                        short_limits[symbol] += order.quantity
+                    else:
+                        long_limits[symbol] += order.quantity
+
+                    dataframes[symbol]['orders'][i].append(order)
+                    dataframes[symbol]['trades'][i].append(Trade(symbol, order.timestamp, order.quantity, dataframes[symbol]['c'][i]))                    
+
+            elif isinstance(order, LimitOrder):
+                # execute the limit order
+                if cfg.POSITION_LIMITS[symbol] > 0 and ((order.quantity < 0 and states[symbol].position + order.quantity < -cfg.POSITION_LIMITS[symbol]) or \
+                    (order.quantity > 0 and states[symbol].position + order.quantity > cfg.POSITION_LIMITS[symbol])):
+                    if log_messages:
+                        logger.warning("Order exceeds position limit: " + str(order))
+                else:
+                    if order.quantity < 0:
+                        short_limits[symbol] += order.quantity
+                    else:
+                        long_limits[symbol] += order.quantity
+
+                    # check if the limit order is filled, if it is filled, then this is a market order with taker fees
+                    if (order.quantity < 0 and dataframes[symbol]['c'][i] <= order.price) or \
+                        (order.quantity > 0 and dataframes[symbol]['c'][i] >= order.price):
+                        dataframes[symbol]['orders'][i].append(order)
+                        dataframes[symbol]['trades'][i].append(Trade(symbol, order.timestamp, order.quantity, dataframes[symbol]['c'][i]))
+                    else:
+                        # if the limit order is not filled, then it is a limit order with maker fees
+                        dataframes[symbol]['orders'][i].append(order)
+                        dataframes[symbol]['trades'][i].append(Trade(symbol, order.timestamp, order.quantity, order.price, is_taker=False, filled=0))
+            else:
+                raise Exception("Invalid order type: " + str(order))
+        
+        # update the position
+        for symbol in dataframes:
+            for trade in dataframes[symbol]['trades'][i]:
+                if trade.is_taker:
+                    if log_messages:
+                        logger.info("Market order filled (or immediately filled limit order): " + str(trade))
+                    dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.TAKER_FEE)
+            for trade_list in dataframes[symbol]['trades'][:i]:
+                for trade in trade_list:
+                    if not trade.is_taker and abs(trade.filled) < abs(trade.quantity) and ((trade.quantity < 0 and dataframes[symbol]['c'][i] >= trade.price) or (trade.quantity > 0 and dataframes[symbol]['c'][i] <= trade.price)):
+                        if cfg.POSITION_LIMITS[symbol] > 0:
+                            if not ((trade.quantity < 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMITS[symbol]) or \
+                            (trade.quantity > 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMITS[symbol])):
+                                trade.filled = trade.quantity
+                                dataframes[symbol].loc[i, 'position'] += (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE)
                                 if log_messages:
                                     logger.info("Limit order filled: " + str(trade))
-                                dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
-                            elif trade.quantity < 0 and dataframes[symbol]['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMITS[symbol] and not dataframes[symbol]['position'][i] <= -cfg.POSITION_LIMITS[symbol]:
-                                if log_messages:
-                                    logger.warning("Limit order partially filled: " + str(trade))
+                            elif trade.quantity < 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMITS[symbol] and dataframes[symbol]['position'][i] > -cfg.POSITION_LIMITS[symbol]:
+                                trade.filled = -cfg.POSITION_LIMITS[symbol] - dataframes[symbol]['position'][i]
                                 dataframes[symbol].loc[i, 'position'] = -cfg.POSITION_LIMITS[symbol]
-                            elif trade.quantity > 0 and dataframes[symbol]['position'][i] + trade.quantity * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMITS[symbol] and not dataframes[symbol]['position'][i] >= cfg.POSITION_LIMITS[symbol]:
                                 if log_messages:
                                     logger.warning("Limit order partially filled: " + str(trade))
+                            elif trade.quantity > 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMITS[symbol] and dataframes[symbol]['position'][i] < cfg.POSITION_LIMITS[symbol]:
+                                trade.filled = cfg.POSITION_LIMITS[symbol] - dataframes[symbol]['position'][i]
                                 dataframes[symbol].loc[i, 'position'] = cfg.POSITION_LIMITS[symbol]
-                            elif cfg.POSITION_LIMITS[symbol] <= 0:
                                 if log_messages:
-                                    logger.info("Limit order filled: " + str(trade))
-                                dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
+                                    logger.warning("Limit order partially filled: " + str(trade))
                             else:
                                 if log_messages:
                                     logger.warning("Limit order not filled, exceeds position limit: " + str(trade))
+                        elif cfg.POSITION_LIMITS[symbol] <= 0:
+                            trade.filled = trade.quantity
+                            dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
+                            if log_messages:
+                                logger.info("Limit order filled: " + str(trade))
     return dataframes
 
 # save the results of the backtest
