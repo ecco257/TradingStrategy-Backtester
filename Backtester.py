@@ -4,9 +4,11 @@ import finnhub as fh
 import pandas as pd
 import Configuration.DateRange as dr
 from DataTypes import State, LimitOrder, MarketOrder, Trade
-import matplotlib.pyplot as plt
 import logging
 from typing import Union, Dict
+import streamlit as st
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Set up the API
 finnhub_client = fh.Client(api_key=cfg.API_KEY)
@@ -161,39 +163,32 @@ def saveResults(dfs: Dict[str, pd.DataFrame], strategy_name: str):
             dfs[symbol].to_csv('BacktestResults/' + strategy_name + '_' + symbol + '.csv')
 
 # plot the results of the backtest
-def plotResults(df: pd.DataFrame):
-    fig, ax1 = plt.subplots()
-
-    color = 'tab:green'
-    ax1.set_xlabel('timestamp')
-    ax1.set_ylabel('position', color=color)
-    ax1.plot([dr.unix_to_date_time(time) for time in df['t']], df['position'], color=color)
-    ax1.tick_params(axis='y', labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:blue'
-    ax2.set_ylabel('PNL', color=color)  # we already handled the x-label with ax1
-    ax2.plot([dr.unix_to_date_time(time) for time in df['t']], df['pnl'], color=color)
-    ax2.tick_params(axis='y', labelcolor=color)
-
-    ax3 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    color = 'tab:red'
-    ax3.set_ylabel('price', color=color)  # we already handled the x-label with ax1
-    ax3.plot([dr.unix_to_date_time(time) for time in df['t']], df['c'], color=color)
-    ax3.tick_params(axis='y', labelcolor=color)
-
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    plt.show()
-
+def plotResults(df: pd.DataFrame, symbol: str):
+    if ':' in symbol:
+        symbol = symbol.split(':')[1]
+    st.header('Results for ' + symbol)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['position'], name='Position', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['c'], name='Closing Price', line=dict(color='red'), yaxis='y2'))
+    fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['pnl'], name='PNL', line=dict(color='blue'), yaxis='y3'))
+    fig.update_layout(title='Position, Close, and PNL for ' + symbol, xaxis_title='Timestamp', yaxis=dict(title='Position', titlefont=dict(color='green'), tickfont=dict(color='green'), side='left'), yaxis2=dict(title='Close', titlefont=dict(color='red'), tickfont=dict(color='red'), overlaying='y', side='right', anchor='x'), yaxis3=dict(title='PNL', titlefont=dict(color='blue'), tickfont=dict(color='blue'), overlaying='y', side='right', anchor='free', autoshift=True), legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
+    st.plotly_chart(fig)
+    
 # run the backtest
 def run(strategy_name: str, log_messages: bool = False):
+    st.title('New Backtest Results for ' + strategy_name)
     dfs = getResults(strategy_name, log_messages)
     saveResults(dfs, strategy_name)
     for symbol in dfs:
         if symbol in cfg.SYMBOLS_TO_BE_TRADED:
-            plotResults(dfs[symbol])
+            plotResults(dfs[symbol], symbol)
+
+def load(strategy_name: str):
+    st.title('Backtest Results for ' + strategy_name + ' (loaded from csv files)')
+    dfs = {}
+    for file in os.listdir('BacktestResults'):
+        if file.startswith(strategy_name):
+            dfs[file.split('_')[1].split('.')[0]] = pd.read_csv('BacktestResults/' + file)
 
 # run the backtest
 if __name__ == "__main__":
