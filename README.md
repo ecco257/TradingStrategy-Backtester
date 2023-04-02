@@ -1,6 +1,7 @@
 # TradingStrategy-Backtester
 
 Trading Strategy backtester and hyperparameter optimizer for crypto and stocks. 
+NOTE: This readme needs to be updated. 
 
 ## Getting Started
 
