@@ -22,7 +22,7 @@ def byMinDrawdown(df: pd.DataFrame) -> float:
 
     for i in range(1, len(pnl)):
         try:
-            current_drawdown = min(0, pnl[i] - max(pnl[:i])/max(pnl[:i]))
+            current_drawdown = min(0, pnl[i] - max(pnl[:i]))
         except ZeroDivisionError:
             current_drawdown = 0
         if current_drawdown < max_drawdown:
@@ -30,3 +30,10 @@ def byMinDrawdown(df: pd.DataFrame) -> float:
 
     # max drawdown will either be 0 or negative, and since the optuna study is maximizing, we return the drawdown as is, because we want the least negative value
     return max_drawdown
+
+def byNumTrades(df: pd.DataFrame) -> float:
+    num_trades = 0
+    for i in range(1, len(df)):
+        if round(df.loc[i, 'position'], 2) != round(df.loc[i-1, 'position'], 2):
+            num_trades += 1
+    return num_trades
