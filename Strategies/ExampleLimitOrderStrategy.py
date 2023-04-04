@@ -22,7 +22,7 @@ def strategy(states: Dict[str, State], data: pd.DataFrame, params: Dict[str, Any
     # Step 2: Update the data you want to use for your strategy
     # ---------------------------------------------------------------------------------------------
 
-    data.loc[len(data)] = [states['BINANCE:BTCUSDT'].close, states['BINANCE:BTCUSDT'].close]
+    data.loc[len(data)] = [states['BTC/USDT'].close, states['BTC/USDT'].close]
 
     ema = trend.EMAIndicator(data['close_history'], 9, fillna=True).ema_indicator()
     current_ema = ema[len(ema)-1]
@@ -34,9 +34,11 @@ def strategy(states: Dict[str, State], data: pd.DataFrame, params: Dict[str, Any
     orders: List[Union[LimitOrder, MarketOrder]] = []
 
     # basic ping pong strategy
-    if states['BINANCE:BTCUSDT'].position >= 0:
-        orders.append(LimitOrder('BINANCE:BTCUSDT', states['BINANCE:BTCUSDT'].timestamp, getMaxSellQuantity(states['BINANCE:BTCUSDT']), data['ema'][len(data)-1]*(1+params['spread_pct'])))
-    elif states['BINANCE:BTCUSDT'].position < 0:
-        orders.append(LimitOrder('BINANCE:BTCUSDT', states['BINANCE:BTCUSDT'].timestamp, getMaxBuyQuantity(states['BINANCE:BTCUSDT']), data['ema'][len(data)-1]*(1-params['spread_pct'])))
+    if states['BTC/USDT'].position >= 0:
+        log('placing limit order to sell at ' + str(data['ema'][len(data)-1]*(1+params['spread_pct'])) + ' because position is ' + str(states['BTC/USDT'].position), cfg.STRATEGY_NAME)
+        orders.append(LimitOrder('BTC/USDT', states['BTC/USDT'].timestamp, getMaxSellQuantity(states['BTC/USDT']), data['close_history'][len(data)-1]*(1+params['spread_pct'])))
+    elif states['BTC/USDT'].position < 0:
+        log('placing limit order to buy at ' + str(data['ema'][len(data)-1]*(1-params['spread_pct'])) + ' because position is ' + str(states['BTC/USDT'].position), cfg.STRATEGY_NAME)
+        orders.append(LimitOrder('BTC/USDT', states['BTC/USDT'].timestamp, getMaxBuyQuantity(states['BTC/USDT']), data['close_history'][len(data)-1]*(1-params['spread_pct'])))
 
     return orders, data

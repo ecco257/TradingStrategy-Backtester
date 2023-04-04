@@ -9,21 +9,16 @@ from typing import Union, Dict
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
-# Set up the API
-finnhub_client = fh.Client(api_key=cfg.API_KEY)
-
-# Set the timeout to 2 minutes to stop from timeout errors with lots of data
-finnhub_client.DEFAULT_TIMEOUT = 120
+import ccxt
+import time
+import sys
+from HyperOpt.OptimizeFunctions import byNumTrades
 
 # Get OHLCV data
-def getOHLCV() -> Dict[str, pd.DataFrame]:
-    if cfg.USE_CRYPTO:
-        return {pair: pd.DataFrame(finnhub_client.crypto_candles(pair, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX)) for pair in cfg.CRYPTO_PAIRS}
-    else:
-        return {ticker: pd.DataFrame(finnhub_client.stock_candles(ticker, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX)) for ticker in cfg.STOCK_TICKERS}
+def getOHLCV(ticker: str) -> pd.DataFrame:
+    return pd.DataFrame(finnhub_client.stock_candles(ticker, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX))
 
-def align_dataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+def alignDataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     # Find the set of timestamps that are shared across all dataframes
     common_timestamps = sorted(set.intersection(*[set(df['t']) for df in dataframes.values()]))
 
@@ -37,7 +32,7 @@ def align_dataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFr
 
 # get the results of the backtest
 # NOTE: the strategy must be in the strategies folder, and strategy_name excludes the .py extension
-def getResults(strategy_name: str, log_messages: bool = False, price_data: Union[Dict[str, pd.DataFrame], None] = cfg.PRICE_DATA) -> pd.DataFrame:
+def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[str, pd.DataFrame] = cfg.PRICE_DATA) -> Dict[str, pd.DataFrame]:
     if log_messages:
         if not os.path.exists('Logs/Backtest'):
             os.makedirs('Logs/Backtest')
@@ -47,17 +42,10 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Union
         logger.info('Starting backtest for ' + strategy_name + ' on ' + str(dr.unix_to_date(dr.FROM_DATE_UNIX)) + ' to ' + str(dr.unix_to_date(dr.TO_DATE_UNIX)))
     
     # get the OHLCV data
-    if price_data is None:
-        if log_messages:
-            logger.info('Getting OHLCV data from Finnhub')
-        dataframes = getOHLCV()
-    else:
-        if log_messages:
-            logger.info('Using OHLCV data from passed DataFrame')
-        dataframes = price_data
+    dataframes = price_data
 
     # align the timestamps and remove any timestamps that are not shared across all dataframes
-    dataframes = align_dataframes(dataframes)
+    dataframes = alignDataframes(dataframes)
 
     # import the strategy
     strategy = __import__('Strategies.' + strategy_name, fromlist=['strategy'])
@@ -178,7 +166,9 @@ def saveResults(dfs: Dict[str, pd.DataFrame], strategy_name: str):
         os.mkdir('BacktestResults')
     for symbol in dfs:
         if symbol in cfg.SYMBOLS_TO_BE_TRADED:
-            dfs[symbol].to_csv('BacktestResults/' + strategy_name + '_' + symbol + '.csv')
+            if '/' in symbol:
+                symbol_in_file = symbol.replace('/', '_')
+            dfs[symbol].to_csv('BacktestResults/' + strategy_name + '_' + symbol_in_file + '.csv')
 
 # plot the results of the backtest
 def plotResults(df: pd.DataFrame, symbol: str):
@@ -186,28 +176,196 @@ def plotResults(df: pd.DataFrame, symbol: str):
         symbol = symbol.split(':')[1]
     st.header('Results for ' + symbol)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['position'], name='Position', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['c'], name='Closing Price', line=dict(color='red'), yaxis='y2'))
-    fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['pnl'], name='PNL', line=dict(color='blue'), yaxis='y3'))
+    if '/' in symbol:
+        fig.add_trace(go.Scatter(x=[dr.unix_ms_to_date_time(time) for time in df['t']], y=df['position'], name='Position', line=dict(color='green')))
+        fig.add_trace(go.Scatter(x=[dr.unix_ms_to_date_time(time) for time in df['t']], y=df['c'], name='Closing Price', line=dict(color='red'), yaxis='y2'))
+        fig.add_trace(go.Scatter(x=[dr.unix_ms_to_date_time(time) for time in df['t']], y=df['pnl'], name='PNL', line=dict(color='blue'), yaxis='y3'))
+    else:
+        fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['position'], name='Position', line=dict(color='green')))
+        fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['c'], name='Closing Price', line=dict(color='red'), yaxis='y2'))
+        fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['pnl'], name='PNL', line=dict(color='blue'), yaxis='y3'))
     fig.update_layout(title='Position, Close, and PNL for ' + symbol, xaxis_title='Timestamp', yaxis=dict(title='Position', titlefont=dict(color='green'), tickfont=dict(color='green'), side='left'), yaxis2=dict(title='Close', titlefont=dict(color='red'), tickfont=dict(color='red'), overlaying='y', side='right', anchor='x'), yaxis3=dict(title='PNL', titlefont=dict(color='blue'), tickfont=dict(color='blue'), overlaying='y', side='right', anchor='free', autoshift=True), legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
     st.plotly_chart(fig)
     
 # run the backtest
 def run(strategy_name: str, log_messages: bool = False):
-    st.title('New Backtest Results for ' + strategy_name)
+    st.title('Backtest Results for ' + strategy_name)
     dfs = getResults(strategy_name, log_messages)
     saveResults(dfs, strategy_name)
     for symbol in dfs:
         if symbol in cfg.SYMBOLS_TO_BE_TRADED:
             plotResults(dfs[symbol], symbol)
 
-def load(strategy_name: str):
-    st.title('Backtest Results for ' + strategy_name + ' (loaded from csv files)')
-    dfs = {}
-    for file in os.listdir('BacktestResults'):
-        if file.startswith(strategy_name):
-            dfs[file.split('_')[1].split('.')[0]] = pd.read_csv('BacktestResults/' + file)
+def getIntervalMS() -> int:
+    num_part = cfg.CRYPTO_INTERVAL[:-1]
+    assert(num_part.isdigit())
+    letter_part = cfg.CRYPTO_INTERVAL[-1]
+
+    if letter_part == 'm':
+        return int(num_part) * 60000
+    elif letter_part == 'h':
+        return int(num_part) * 3600000
+    elif letter_part == 'd':
+        return int(num_part) * 86400000
+    elif letter_part == 'w':
+        return int(num_part) * 604800000
+    else:
+        raise ValueError(f"Invalid interval '{cfg.CRYPTO_INTERVAL}'")
+
+def getIntervalSeconds() -> int:
+    return int(getIntervalMS() / 1000)
+
+def roundToIntervalMS(timestamp: int) -> int:
+    # round up or down to the nearest interval
+    interval_ms = getIntervalMS()
+    if timestamp % interval_ms < interval_ms / 2:
+        return timestamp - (timestamp % interval_ms)
+    else:
+        return timestamp + (interval_ms - (timestamp % interval_ms))
+
+def roundToIntervalSeconds(timestamp: int) -> int:
+    return int(roundToIntervalMS(timestamp * 1000) / 1000)
+
+def getPandasFrequency() -> str:
+    
+    timeframe = cfg.CRYPTO_INTERVAL
+
+    num_part = int(timeframe[:-1])
+    letter_part = timeframe[-1]
+    
+    if letter_part == 'm':
+        freq_letter = 'T'
+    elif letter_part == 'h':
+        freq_letter = 'H'
+    elif letter_part == 'd':
+        freq_letter = 'D'
+    elif letter_part == 'w':
+        freq_letter = 'W'
+    else:
+        raise ValueError(f"Invalid timeframe '{timeframe}'")
+    
+    return f'{num_part}{freq_letter}'
+
+def downloadCryptoData(exchange: ccxt.Exchange, pair: str) -> pd.DataFrame:
+    df = pd.DataFrame(columns=['t', 'o', 'h', 'l', 'c', 'v'])
+    
+    if os.path.exists('BacktestData/' + pair.replace('/', '_') + '.csv'):
+        df = pd.read_csv('BacktestData/' + pair.replace('/', '_') + '.csv')
+
+    old_df = df.copy()
+
+    missing_data = set()
+    from_date_ms = roundToIntervalMS(dr.FROM_DATE_MS)
+    to_date_ms = dr.TO_DATE_MS
+
+    if not df.empty:
+        # extract a set of all the dates that are missing from the data
+        date_range = pd.date_range(start=dr.unix_ms_to_date_time(roundToIntervalMS(dr.FROM_DATE_MS)), end=dr.unix_ms_to_date_time(dr.TO_DATE_MS), freq=getPandasFrequency())
+
+        date_range = set([dr.date_to_unix_ms(date) for date in date_range])
+
+        missing_data = date_range - set(df['t'])
+
+        if len(missing_data) == 0:
+            print('No missing data')
+            return df
+
+        from_date_ms = min(missing_data)
+        to_date_ms = max(missing_data)
+
+    exchange.load_markets()
+
+    if exchange.has['fetchOHLCV']:
+        time_range = to_date_ms - from_date_ms
+        interval_ms = getIntervalMS()
+        print('Fetching data in chunks...')
+        new_from_date_ms = roundToIntervalMS(from_date_ms)
+        while new_from_date_ms < to_date_ms:
+            print('progress: ' + str(round((new_from_date_ms - from_date_ms) / time_range * 100, 2)) + '%')
+            time.sleep(exchange.rateLimit / 1000)
+            ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms, limit=1500), columns=['t', 'o', 'h', 'l', 'c', 'v'])
+            df = pd.concat([df, ohlcv], ignore_index=True)
+            new_from_date_ms = df.loc[len(df) - 1, 't'] + interval_ms
+        # remove duplicates
+        df = df.drop_duplicates(subset=['t'])
+        # sort by time
+        df = df.sort_values(by=['t'])
+    else:
+        raise Exception('fetchOHLCV not supported by exchange')
+
+    return df
+
+def getDataForSymbol(symbol: str) -> pd.DataFrame:
+    df = pd.DataFrame(columns=['t', 'o', 'h', 'l', 'c', 'v'])
+    if '/' in symbol:
+        # make sure the data is downloaded
+        # if we are calling this from the backtester, we want to see if BacktestData exists, otherwise we want to see if ../BacktestData exists
+        if str(os.getcwd().split(os.sep)[-1]) != 'HyperOpt':
+            if not os.path.exists('BacktestData/' + symbol.replace('/', '_') + '.csv'):
+                print('Data not downloaded for ' + symbol)
+                exit(1)
+            # load the data
+            df = pd.read_csv('BacktestData/' + symbol.replace('/', '_') + '.csv')
+            # extract the data for the time period we want
+            df = df[(df['t'] >= roundToIntervalMS(dr.FROM_DATE_MS)) & (df['t'] <= dr.TO_DATE_MS)]
+            # remove data that is not in the interval
+            df = df[df['t'] % getIntervalMS() == 0]
+            # sort by time
+            df = df.sort_values(by=['t'])
+            # reset the index
+            df = df.reset_index(drop=True)
+        else:
+            if not os.path.exists('../BacktestData/' + symbol.replace('/', '_') + '.csv'):
+                print('Data not downloaded for ' + symbol)
+                exit(1)
+            # load the data
+            df = pd.read_csv('../BacktestData/' + symbol.replace('/', '_') + '.csv')
+            # extract the data for the time period we want
+            df = df[(df['t'] >= roundToIntervalMS(dr.FROM_DATE_MS)) & (df['t'] <= dr.TO_DATE_MS)]
+            # remove data that is not in the interval
+            df = df[df['t'] % getIntervalMS() == 0]
+            # sort by time
+            df = df.sort_values(by=['t'])
+            # reset the index
+            df = df.reset_index(drop=True)
+    else:
+        df = getOHLCV(symbol)
+    return df
 
 # run the backtest
 if __name__ == "__main__":
-    run(cfg.STRATEGY_NAME, log_messages=True)
+
+    df = getDataForSymbol('BTC/USDT')
+
+    # there will be 1 argument, [ download | test ]
+    if len(sys.argv) != 2 or sys.argv[1] not in ['download', 'test']:
+        print('Usage: python3 Backtester.py [ download | test ]')
+        exit(1)
+
+    # Set up the crypto API
+    exchange = ccxt.kucoin({ 'enableRateLimit': True })
+    # Set up the stock API
+    finnhub_client = fh.Client(api_key=cfg.API_KEY)
+
+    # Set the timeout to 2 minutes to stop from timeout errors with lots of data
+    finnhub_client.DEFAULT_TIMEOUT = 120
+
+    if sys.argv[1] == 'download':
+        for symbol in cfg.SYMBOLS_TO_BE_TRADED:
+            if '/' in symbol:
+                df = downloadCryptoData(exchange, symbol)
+                if not os.path.exists('BacktestData'):
+                    os.mkdir('BacktestData')
+                df.to_csv('BacktestData/' + symbol.replace('/', '_') + '.csv', index=False)
+    else:
+        dfs = {}
+        for symbol in cfg.SYMBOLS_TO_BE_TRADED:
+            dfs[symbol] = getDataForSymbol(symbol)
+        # run the backtest
+        st.title('Backtest Results for ' + cfg.STRATEGY_NAME)
+        result_dfs = getResults(cfg.STRATEGY_NAME, True, dfs)
+        saveResults(result_dfs, cfg.STRATEGY_NAME)
+        for symbol in result_dfs:
+            if symbol in cfg.SYMBOLS_TO_BE_TRADED:
+                plotResults(result_dfs[symbol], symbol)
+                st.write('number of trades: ' + str(byNumTrades(result_dfs[symbol])))

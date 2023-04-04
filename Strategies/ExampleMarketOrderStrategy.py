@@ -21,20 +21,20 @@ def strategy(states: Dict[str, State], data: pd.DataFrame, params: Union[Dict[st
     # Step 2: Update the data you want to use for your strategy
     # ---------------------------------------------------------------------------------------------
 
-    data.loc[len(data)] = [states['BINANCE:BTCUSDT'].close, 50]
+    data.loc[len(data)] = [states['BTC/USDT'].close, 50]
 
-    rsi = momentum.RSIIndicator(data['close_history'], 14, fillna=False).rsi()
+    rsi = momentum.RSIIndicator(data['close_history'], params['rsi_lookback'], fillna=False).rsi()
     current_rsi = rsi[len(rsi)-1]
-    log('RSI: ' + str(current_rsi) + ' at ' + str(states['BINANCE:BTCUSDT'].timestamp), cfg.STRATEGY_NAME)
+    log('RSI: ' + str(current_rsi) + ' at ' + str(states['BTC/USDT'].timestamp), cfg.STRATEGY_NAME)
     data['rsi'][len(data)-1] = current_rsi
 
     # ---------------------------------------------------------------------------------------------
     # Step 3: Make your trading decisions
     # ---------------------------------------------------------------------------------------------
     orders: List[Union[LimitOrder, MarketOrder]] = []
-    if data['rsi'][len(data)-1] is not None and data['rsi'][len(data)-1] < 30:
-        orders.append(MarketOrder('BINANCE:BTCUSDT', states['BINANCE:BTCUSDT'].timestamp, getMaxBuyQuantity(states['BINANCE:BTCUSDT'])))
-    elif data['rsi'][len(data)-1] is not None and data['rsi'][len(data)-1] > 70:
-        orders.append(MarketOrder('BINANCE:BTCUSDT', states['BINANCE:BTCUSDT'].timestamp, -states['BINANCE:BTCUSDT'].position))
+    if data['rsi'][len(data)-1] is not None and data['rsi'][len(data)-1] < params['rsi_buy_threshold']:
+        orders.append(MarketOrder('BTC/USDT', states['BTC/USDT'].timestamp, getMaxBuyQuantity(states['BTC/USDT'])))
+    elif data['rsi'][len(data)-1] is not None and data['rsi'][len(data)-1] > params['rsi_sell_threshold']:
+        orders.append(MarketOrder('BTC/USDT', states['BTC/USDT'].timestamp, -states['BTC/USDT'].position))
 
     return orders, data

@@ -3,7 +3,7 @@ import sys
 # add the parent directory to the path so that we can import Backtester.py and config.py when running this file directly 
 # (in terminal with current directory set to HyperOpt)
 sys.path[0] += '/..'
-from Backtester import getResults, getOHLCV
+from Backtester import getResults, getDataForSymbol
 import Configuration.Config as cfg
 from typing import Any, Callable, Tuple, List
 import logging
@@ -50,7 +50,9 @@ def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS, optimize_by_fu
     logger.info('Optimizing hyperparameters for ' + cfg.STRATEGY_NAME)
     logger.info('Time: ' + str(unix_to_date(time())))
 
-    cfg.PRICE_DATA = getOHLCV()
+    cfg.PRICE_DATA = {}
+    for symbol in cfg.SYMBOLS_TO_BE_TRADED:
+        cfg.PRICE_DATA[symbol] = getDataForSymbol(symbol)
 
     # set the objective function to use the intended optimization function
     objective_with_args = lambda trial: objective(trial, optimize_by_functions)
