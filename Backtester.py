@@ -184,7 +184,13 @@ def plotResults(df: pd.DataFrame, symbol: str):
         fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['position'], name='Position', line=dict(color='green')))
         fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['c'], name='Closing Price', line=dict(color='red'), yaxis='y2'))
         fig.add_trace(go.Scatter(x=[dr.unix_to_date_time(time) for time in df['t']], y=df['pnl'], name='PNL', line=dict(color='blue'), yaxis='y3'))
-    fig.update_layout(title='Position, Close, and PNL for ' + symbol, xaxis_title='Timestamp', yaxis=dict(title='Position', titlefont=dict(color='green'), tickfont=dict(color='green'), side='left'), yaxis2=dict(title='Close', titlefont=dict(color='red'), tickfont=dict(color='red'), overlaying='y', side='right', anchor='x'), yaxis3=dict(title='PNL', titlefont=dict(color='blue'), tickfont=dict(color='blue'), overlaying='y', side='right', anchor='free', autoshift=True), legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
+    fig.update_layout(
+        title='Position, Close, and PNL for ' + symbol, 
+        xaxis_title='Timestamp', 
+        yaxis=dict(title='Position', titlefont=dict(color='green'), tickfont=dict(color='green'), side='left'), 
+        yaxis2=dict(title='Close', titlefont=dict(color='red'), tickfont=dict(color='red'), overlaying='y', side='right', anchor='x'), 
+        yaxis3=dict(title='PNL', titlefont=dict(color='blue'), tickfont=dict(color='blue'), overlaying='y', side='right', anchor='free', autoshift=True), 
+        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
     st.plotly_chart(fig)
     
 # run the backtest
@@ -252,8 +258,6 @@ def downloadCryptoData(exchange: ccxt.Exchange, pair: str) -> pd.DataFrame:
     if os.path.exists('BacktestData/' + pair.replace('/', '_') + '.csv'):
         df = pd.read_csv('BacktestData/' + pair.replace('/', '_') + '.csv')
 
-    old_df = df.copy()
-
     missing_data = set()
     from_date_ms = roundToIntervalMS(dr.FROM_DATE_MS)
     to_date_ms = dr.TO_DATE_MS
@@ -283,7 +287,12 @@ def downloadCryptoData(exchange: ccxt.Exchange, pair: str) -> pd.DataFrame:
         while new_from_date_ms < to_date_ms:
             print('progress: ' + str(round((new_from_date_ms - from_date_ms) / time_range * 100, 2)) + '%')
             time.sleep(exchange.rateLimit / 1000)
-            ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms, limit=1500), columns=['t', 'o', 'h', 'l', 'c', 'v'])
+            try:
+                ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms), columns=['t', 'o', 'h', 'l', 'c', 'v'])
+            except:
+                print('rate limit probably exceeded, waiting 3 seconds')
+                time.sleep(3)
+                ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms), columns=['t', 'o', 'h', 'l', 'c', 'v'])
             df = pd.concat([df, ohlcv], ignore_index=True)
             new_from_date_ms = df.loc[len(df) - 1, 't'] + interval_ms
         # remove duplicates
@@ -335,8 +344,6 @@ def getDataForSymbol(symbol: str) -> pd.DataFrame:
 # run the backtest
 if __name__ == "__main__":
 
-    df = getDataForSymbol('BTC/USDT')
-
     # there will be 1 argument, [ download | test ]
     if len(sys.argv) != 2 or sys.argv[1] not in ['download', 'test']:
         print('Usage: python3 Backtester.py [ download | test ]')
@@ -363,7 +370,7 @@ if __name__ == "__main__":
             dfs[symbol] = getDataForSymbol(symbol)
         # run the backtest
         st.title('Backtest Results for ' + cfg.STRATEGY_NAME)
-        result_dfs = getResults(cfg.STRATEGY_NAME, True, dfs)
+        result_dfs = getResults(cfg.STRATEGY_NAME, False, dfs)
         saveResults(result_dfs, cfg.STRATEGY_NAME)
         for symbol in result_dfs:
             if symbol in cfg.SYMBOLS_TO_BE_TRADED:
