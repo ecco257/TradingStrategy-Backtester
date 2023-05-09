@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-from HyperOpt.OptimizeFunctions import byMinDrawdown, byProfit, byNumTrades
+from HyperOpt.OptimizeFunctions import *
 import pandas as pd
 from typing import Dict, List
 
