@@ -27,7 +27,7 @@ def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = [
         else:
             raise Exception('Hyperparameter type not supported.')
     # get the results
-    df = getResults(strategy_name=cfg.STRATEGY_NAME, price_data=cfg.PRICE_DATA)[cfg.SYMBOL_TO_OPTIMIZE]
+    df = getResults(strategy_name=cfg.STRATEGY_NAME, price_data=cfg.PRICE_DATA)[0][cfg.SYMBOL_TO_OPTIMIZE]
     
     optimize_results: Tuple[Any, ...] = tuple([optimize_function(df) for optimize_function in optimize_functions])
 
