@@ -18,9 +18,8 @@ from Graphs import graphs
 # Get OHLCV data
 def getOHLCV(ticker: str) -> pd.DataFrame:
     # if there isnt a finnhub client, create one. this means we are calling this function outside of the backtester
-    if 'finnhub_client' not in globals():
-        print('Creating finnhub client because it doesnt exist')
-        finnhub_client = fh.Client(api_key=cfg.API_KEY)
+    finnhub_client = fh.Client(api_key=cfg.API_KEY)
+    finnhub_client.DEFAULT_TIMEOUT = 120
     return pd.DataFrame(finnhub_client.stock_candles(ticker, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX))
 
 def alignDataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
@@ -349,11 +348,6 @@ if __name__ == "__main__":
 
     # Set up the crypto API
     exchange = ccxt.kucoin({ 'enableRateLimit': True })
-    # Set up the stock API
-    finnhub_client = fh.Client(api_key=cfg.API_KEY)
-
-    # Set the timeout to 2 minutes to stop from timeout errors with lots of data
-    finnhub_client.DEFAULT_TIMEOUT = 120
 
     if sys.argv[1] == 'download':
         for symbol in cfg.SYMBOLS_TO_BE_TRADED:
