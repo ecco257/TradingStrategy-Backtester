@@ -1,7 +1,9 @@
 python-dotenv==1.0.0
 finnhub-python==2.4.16
 pandas==1.5.3
-matplotlib==3.7.1
-plotly==5.13.1
+streamlit==1.22.0
+plotly==5.14.1
+ccxt==3.0.97
+plotly==5.14.1
 optuna==3.1.0
 ta==0.10.2
