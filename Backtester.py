@@ -16,6 +16,10 @@ from HyperOpt.OptimizeFunctions import byNumTrades
 
 # Get OHLCV data
 def getOHLCV(ticker: str) -> pd.DataFrame:
+    # if there isnt a finnhub client, create one. this means we are calling this function outside of the backtester
+    if 'finnhub_client' not in globals():
+        print('Creating finnhub client because it doesnt exist')
+        finnhub_client = fh.Client(api_key=cfg.API_KEY)
     return pd.DataFrame(finnhub_client.stock_candles(ticker, cfg.INTERVAL, dr.FROM_DATE_UNIX, dr.TO_DATE_UNIX))
 
 def alignDataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
