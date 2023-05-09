@@ -5,7 +5,7 @@ import pandas as pd
 import Configuration.DateRange as dr
 from DataTypes import State, LimitOrder, MarketOrder, Trade
 import logging
-from typing import Union, Dict
+from typing import Union, Dict, Tuple
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -13,6 +13,7 @@ import ccxt
 import time
 import sys
 from HyperOpt.OptimizeFunctions import byNumTrades
+from Graphs import graphs
 
 # Get OHLCV data
 def getOHLCV(ticker: str) -> pd.DataFrame:
@@ -36,7 +37,7 @@ def alignDataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFra
 
 # get the results of the backtest
 # NOTE: the strategy must be in the strategies folder, and strategy_name excludes the .py extension
-def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[str, pd.DataFrame] = cfg.PRICE_DATA) -> Dict[str, pd.DataFrame]:
+def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[str, pd.DataFrame] = cfg.PRICE_DATA) -> Tuple[Dict[str, pd.DataFrame], pd.DataFrame]:
     if log_messages:
         if not os.path.exists('Logs/Backtest'):
             os.makedirs('Logs/Backtest')
@@ -162,7 +163,7 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
                             dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
                             if log_messages:
                                 logger.info("Limit order filled: " + str(trade))
-    return dataframes
+    return dataframes, strat_data
 
 # save the results of the backtest
 def saveResults(dfs: Dict[str, pd.DataFrame], strategy_name: str):
@@ -172,6 +173,8 @@ def saveResults(dfs: Dict[str, pd.DataFrame], strategy_name: str):
         if symbol in cfg.SYMBOLS_TO_BE_TRADED:
             if '/' in symbol:
                 symbol_in_file = symbol.replace('/', '_')
+            else:
+                symbol_in_file = symbol
             dfs[symbol].to_csv('BacktestResults/' + strategy_name + '_' + symbol_in_file + '.csv')
 
 # plot the results of the backtest
@@ -196,15 +199,6 @@ def plotResults(df: pd.DataFrame, symbol: str):
         yaxis3=dict(title='PNL', titlefont=dict(color='blue'), tickfont=dict(color='blue'), overlaying='y', side='right', anchor='free', autoshift=True), 
         legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1))
     st.plotly_chart(fig)
-    
-# run the backtest
-def run(strategy_name: str, log_messages: bool = False):
-    st.title('Backtest Results for ' + strategy_name)
-    dfs = getResults(strategy_name, log_messages)
-    saveResults(dfs, strategy_name)
-    for symbol in dfs:
-        if symbol in cfg.SYMBOLS_TO_BE_TRADED:
-            plotResults(dfs[symbol], symbol)
 
 def getIntervalMS() -> int:
     num_part = cfg.CRYPTO_INTERVAL[:-1]
@@ -374,9 +368,15 @@ if __name__ == "__main__":
             dfs[symbol] = getDataForSymbol(symbol)
         # run the backtest
         st.title('Backtest Results for ' + cfg.STRATEGY_NAME)
-        result_dfs = getResults(cfg.STRATEGY_NAME, False, dfs)
+        results = getResults(cfg.STRATEGY_NAME, False, dfs)
+        result_dfs = results[0]
+        strat_data = results[1]
         saveResults(result_dfs, cfg.STRATEGY_NAME)
         for symbol in result_dfs:
             if symbol in cfg.SYMBOLS_TO_BE_TRADED:
                 plotResults(result_dfs[symbol], symbol)
                 st.write('number of trades: ' + str(byNumTrades(result_dfs[symbol])))
+        st.write(strat_data)
+        for graph_fn in graphs:
+            # each graph function returns a plotly figure, so we can just pass it to streamlit
+            st.plotly_chart(graph_fn(strat_data))
