@@ -42,7 +42,7 @@ class Trade:
         return "Trade(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ", " + str(self.price) + ")"
     
 class State:
-    def __init__(self, security: str, timestamp: int, position: float, open: float, high: float, low: float, close: float, volume: float):
+    def __init__(self, security: str, timestamp: int, position: float, open: float, high: float, low: float, close: float, volume: float, pnl: float, hidden_state: int = None):
         self.security = security
         self.timestamp = timestamp
         self.position = position
@@ -51,9 +51,11 @@ class State:
         self.low = low
         self.close = close
         self.volume = volume
+        self.pnl = pnl
+        self.hidden_state = hidden_state
 
     def __str__(self):
-        return "State for " + self.security + " on timestamp " + str(self.timestamp) + " with position " + str(self.position) + " and OHLCV " + str(self.open) + ", " + str(self.high) + ", " + str(self.low) + ", " + str(self.close) + ", " + str(self.volume)        
+        return "State for " + self.security + " on timestamp " + str(self.timestamp) + " with position " + str(self.position) + " and OHLCV " + str(self.open) + ", " + str(self.high) + ", " + str(self.low) + ", " + str(self.close) + ", " + str(self.volume) + " and PnL " + str(self.pnl) + " and hidden state " + str(self.hidden_state)      
 
     def __repr__(self):
-        return "State(" + self.security + ", " + str(self.timestamp) + ", " + str(self.position) + ", " + str(self.open) + ", " + str(self.high) + ", " + str(self.low) + ", " + str(self.close) + ", " + str(self.volume) + ")"
+        return "State(" + self.security + ", " + str(self.timestamp) + ", " + str(self.position) + ", " + str(self.open) + ", " + str(self.high) + ", " + str(self.low) + ", " + str(self.close) + ", " + str(self.volume) + ", " + str(self.pnl) + ", " + str(self.hidden_state) + ")"
