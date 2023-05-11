@@ -14,6 +14,9 @@ import time
 import sys
 from HyperOpt.OptimizeFunctions import byNumTrades
 from Graphs import graphs
+import pickle
+from HMMTraining.TrainingMethods import training_methods
+import numpy as np
 
 # Get OHLCV data
 def getOHLCV(ticker: str) -> pd.DataFrame:
@@ -60,9 +63,15 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
         dataframes[symbol]['orders'] = [[] for i in range(len(dataframes[symbol]))]
         dataframes[symbol]['trades'] = [[] for i in range(len(dataframes[symbol]))]
         dataframes[symbol]['position'] = [0 for i in range(len(dataframes[symbol]))]
-        dataframes[symbol]['pnl'] = [0 for i in range(len(dataframes[symbol]))]
+        dataframes[symbol]['pnl'] = [cfg.INITIAL_CAPITALS[symbol] for i in range(len(dataframes[symbol]))]
 
     strat_data = pd.DataFrame()
+
+    # if we are using a HMM (the parameter isnt none), load the model
+    model = None
+    if cfg.MODEL_TO_USE is not None and 'HMMTraining' not in sys.path[0]:
+        with open('HMMTraining/Models/' + cfg.MODEL_TO_USE + '.pkl', 'rb') as f:
+            model = pickle.load(f)
 
     for i in range(len(dataframes[cfg.SYMBOLS_TO_BE_TRADED[0]])):
         if i > 1:
@@ -74,7 +83,17 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
                 # update the PnL
                 dataframes[symbol].loc[i, 'pnl'] = dataframes[symbol].loc[i-1, 'pnl'] + dataframes[symbol].loc[i, 'position'] * (dataframes[symbol].loc[i, 'c'] - dataframes[symbol].loc[i-1, 'c'])
             
-        states = {symbol: State(symbol, dataframes[symbol].loc[i, 't'], dataframes[symbol].loc[i, 'position'], dataframes[symbol].loc[i, 'o'], dataframes[symbol].loc[i, 'h'], dataframes[symbol].loc[i, 'l'], dataframes[symbol].loc[i, 'c'], dataframes[symbol].loc[i, 'v']) for symbol in dataframes}
+        states = {symbol: State(symbol, dataframes[symbol].loc[i, 't'], dataframes[symbol].loc[i, 'position'], dataframes[symbol].loc[i, 'o'], dataframes[symbol].loc[i, 'h'], dataframes[symbol].loc[i, 'l'], dataframes[symbol].loc[i, 'c'], dataframes[symbol].loc[i, 'v'], dataframes[symbol].loc[i, 'pnl'], None) for symbol in dataframes}
+
+        if model is not None and i > 1 and 'HMMTraining' not in sys.path[0]:
+
+            training_data = [training_methods[i](strat_data) for i in range(len(training_methods))]
+
+            packed_data = np.column_stack(training_data)
+
+            all_hidden_states = model.predict(packed_data)
+
+            states[cfg.SYMBOL_TO_TRAIN].hidden_state = all_hidden_states[-1]
 
         # get the orders
         orders, strat_data = strategy.strategy(states, strat_data, cfg.STRATEGY_HYPERPARAMETERS)
@@ -306,7 +325,7 @@ def getDataForSymbol(symbol: str) -> pd.DataFrame:
     if '/' in symbol:
         # make sure the data is downloaded
         # if we are calling this from the backtester, we want to see if BacktestData exists, otherwise we want to see if ../BacktestData exists
-        if str(os.getcwd().split(os.sep)[-1]) != 'HyperOpt':
+        if str(os.getcwd().split(os.sep)[-1]) != 'HyperOpt' and str(os.getcwd().split(os.sep)[-1]) != 'HMMTraining':
             if not os.path.exists('BacktestData/' + symbol.replace('/', '_') + '.csv'):
                 print('Data not downloaded for ' + symbol)
                 exit(1)
@@ -320,7 +339,7 @@ def getDataForSymbol(symbol: str) -> pd.DataFrame:
             df = df.sort_values(by=['t'])
             # reset the index
             df = df.reset_index(drop=True)
-        else:
+        elif str(os.getcwd().split(os.sep)[-1]) == 'HyperOpt' or str(os.getcwd().split(os.sep)[-1]) == 'HMMTraining':
             if not os.path.exists('../BacktestData/' + symbol.replace('/', '_') + '.csv'):
                 print('Data not downloaded for ' + symbol)
                 exit(1)
@@ -373,4 +392,4 @@ if __name__ == "__main__":
         st.write(strat_data)
         for graph_fn in graphs:
             # each graph function returns a plotly figure, so we can just pass it to streamlit
-            st.plotly_chart(graph_fn(strat_data))
+            st.plotly_chart(graph_fn(strat_data, result_dfs))
