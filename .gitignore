@@ -3,6 +3,12 @@ BacktestResults/
 CachedData/
 BacktestData/
 
+# Logs
+Logs/
+
+# Models
+HMMTraining/Models/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
