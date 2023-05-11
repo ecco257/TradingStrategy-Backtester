@@ -9,11 +9,11 @@ from typing import Any, Callable, Tuple, List
 import logging
 import pandas as pd
 import os
-from HyperOpt.OptimizeFunctions import *
+from HyperOpt.OptimizeFunctions import optimization_functions
 from time import time
 from Configuration.DateRange import unix_to_date
 
-def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = [byProfit]):
+def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = optimization_functions):
     # get the hyperparameters
     for param in cfg.STRATEGY_HYPERPARAMETERS:
         lower_bound = cfg.STRATEGY_HYPERPARAMETER_RANGES[param][0]
@@ -34,7 +34,7 @@ def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = [
     # return the value to optimize by
     return optimize_results
 
-def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS, optimize_by_functions: List[Callable[[pd.DataFrame], Any]] = cfg.HYPER_OPT_METHODS):
+def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS):
 
     if not os.path.exists('../Logs/HyperOpt'):
         os.makedirs('../Logs/HyperOpt')
@@ -55,16 +55,16 @@ def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS, optimize_by_fu
         cfg.PRICE_DATA[symbol] = getDataForSymbol(symbol)
 
     # set the objective function to use the intended optimization function
-    objective_with_args = lambda trial: objective(trial, optimize_by_functions)
+    objective_with_args = lambda trial: objective(trial, optimization_functions)
 
     # optimize the hyperparameters
-    study = optuna.create_study(directions=['maximize' for _ in range(len(optimize_by_functions))])
+    study = optuna.create_study(directions=['maximize' for _ in range(len(optimization_functions))])
 
     study.optimize(objective_with_args, n_trials)
 
     # print the results and format it so that it can be copied and pasted into the config file
     logger.info('Best hyperparameters:')
-    if len(optimize_by_functions) == 1:
+    if len(optimization_functions) == 1:
         params = study.best_params
 
         logger.info('STRATEGY_HYPERPARAMETERS = {')
