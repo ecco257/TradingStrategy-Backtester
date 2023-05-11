@@ -45,6 +45,7 @@ Trading Strategy backtester and hyperparameter optimizer for crypto and stocks (
 
 ### Working with HMMs
 
+* [hmmlearn](https://hmmlearn.readthedocs.io/en/latest) is used to implement Gaussian Hidden Markov Models. The point of this is to predict which state the market is in at any given timestep. This can help for things such as regime detection.  
 * If you want to include Hidden Markov Models in your strategy, there is a two step process: Train a model, then test the model. 
 * The first thing you must do to train the model is to make sure the configuration is set up properly
   * In `Configuration/Config.py`, set up the time range and interval you want to train the model on (`DELTA_TIME`, `TO_DATE_LESS`, and either `INTERVAL` (for stocks) or `CRYPTO_INTERVAL` (for crypto)). Note: Make sure to download data with `python Backtester.py download` in main project directory if using crypto. 
