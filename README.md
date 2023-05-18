@@ -64,8 +64,6 @@ Trading Strategy backtester and hyperparameter optimizer for crypto and stocks (
 
 ## TODO
 
-* Add the option to start with initial capital, instead of just having position limits
-* Implement a trainer, so that things such as a hidden markov model for regime detection can be trained on lots of data and then used for backtesting/forward testing
 * Implement forward testing, probably through a discord bot which makes a notification when trades are made, etc.
 
 ## Authors
