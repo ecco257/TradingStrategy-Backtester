@@ -11,7 +11,7 @@ def getMaxSellQuantity(state: State) -> float: # this only obeys the position li
 
 def getMaxBuyQuantityUsingCash(state: State) -> float: # this assumes that we are only allowed to buy what we can afford with our cash
     if state.pnl > 0:
-        return min(state.pnl / state.close, getMaxBuyQuantity(state))
+        return min((state.pnl - state.close * state.position) / state.close, getMaxBuyQuantity(state))
     else:
         return 0
 
