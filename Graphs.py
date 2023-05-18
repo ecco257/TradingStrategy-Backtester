@@ -51,11 +51,10 @@ def closeColoredByState(strat_data: pd.DataFrame, result_data: Dict[str, pd.Data
     return fig
 
 def returns(strat_data: pd.DataFrame, result_data: Dict[str, pd.DataFrame]) -> go.Figure:
-    closes = strat_data['close_history'].to_numpy()
-    returns = np.diff(closes)
+    pct_change = strat_data['close_history'].pct_change().to_numpy()
     fig = go.Figure(data=go.Scatter(
         x=strat_data['timestamp'][1:],
-        y=returns,
+        y=pct_change,
         mode='lines'
     ))
     fig.update_layout(title_text='Returns')
