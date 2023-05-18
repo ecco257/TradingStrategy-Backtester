@@ -5,7 +5,7 @@ import sys
 sys.path[0] += '/..'
 from Backtester import getResults, getDataForSymbol
 import Configuration.Config as cfg
-from typing import Any, Callable, Tuple, List
+from typing import Any, Callable, Tuple, List, Dict
 import logging
 import pandas as pd
 import os
@@ -13,7 +13,7 @@ from HyperOpt.OptimizeFunctions import optimization_functions
 from time import time
 from Configuration.DateRange import unix_to_date
 
-def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = optimization_functions):
+def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]], price_data: Dict[str, pd.DataFrame]):
     # get the hyperparameters
     for param in cfg.STRATEGY_HYPERPARAMETERS:
         lower_bound = cfg.STRATEGY_HYPERPARAMETER_RANGES[param][0]
@@ -27,7 +27,7 @@ def objective(trial, optimize_functions: List[Callable[[pd.DataFrame], Any]] = o
         else:
             raise Exception('Hyperparameter type not supported.')
     # get the results
-    df = getResults(strategy_name=cfg.STRATEGY_NAME, price_data=cfg.PRICE_DATA)[0][cfg.SYMBOL_TO_OPTIMIZE]
+    df = getResults(strategy_name=cfg.STRATEGY_NAME, price_data=price_data)[0][cfg.SYMBOL_TO_OPTIMIZE]
     
     optimize_results: Tuple[Any, ...] = tuple([optimize_function(df) for optimize_function in optimize_functions])
 
@@ -50,12 +50,12 @@ def optimizeHyperparameters(n_trials: int = cfg.HYPER_OPT_TRIALS):
     logger.info('Optimizing hyperparameters for ' + cfg.STRATEGY_NAME)
     logger.info('Time: ' + str(unix_to_date(time())))
 
-    cfg.PRICE_DATA = {}
+    price_data = {}
     for symbol in cfg.SYMBOLS_TO_BE_TRADED:
-        cfg.PRICE_DATA[symbol] = getDataForSymbol(symbol)
+        price_data[symbol] = getDataForSymbol(symbol)
 
     # set the objective function to use the intended optimization function
-    objective_with_args = lambda trial: objective(trial, optimization_functions)
+    objective_with_args = lambda trial: objective(trial, optimization_functions, price_data)
 
     # optimize the hyperparameters
     study = optuna.create_study(directions=['maximize' for _ in range(len(optimization_functions))])
