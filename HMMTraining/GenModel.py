@@ -15,11 +15,7 @@ def trainModel():
     if not os.path.exists('Models'):
         os.makedirs('Models')
 
-    cfg.PRICE_DATA = {}
-    for symbol in cfg.SYMBOLS_TO_BE_TRADED:
-        cfg.PRICE_DATA[symbol] = getDataForSymbol(symbol)
-
-    price_data = cfg.PRICE_DATA[cfg.SYMBOL_TO_TRAIN]
+    price_data = getDataForSymbol(cfg.SYMBOL_TO_TRAIN)
 
     training_data = [training_methods[i](price_data) for i in range(len(training_methods))]
 
