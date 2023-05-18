@@ -39,7 +39,7 @@ def alignDataframes(dataframes: dict[str, pd.DataFrame]) -> dict[str, pd.DataFra
 
 # get the results of the backtest
 # NOTE: the strategy must be in the strategies folder, and strategy_name excludes the .py extension
-def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[str, pd.DataFrame] = cfg.PRICE_DATA) -> Tuple[Dict[str, pd.DataFrame], pd.DataFrame]:
+def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[str, pd.DataFrame] = None) -> Tuple[Dict[str, pd.DataFrame], pd.DataFrame]:
     if log_messages:
         if not os.path.exists('Logs/Backtest'):
             os.makedirs('Logs/Backtest')
@@ -70,8 +70,12 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
     # if we are using a HMM (the parameter isnt none), load the model
     model = None
     if cfg.MODEL_TO_USE is not None and 'HMMTraining' not in sys.path[0]:
-        with open('HMMTraining/Models/' + cfg.MODEL_TO_USE + '.pkl', 'rb') as f:
-            model = pickle.load(f)
+        if 'HyperOpt' in sys.path[0]:
+            with open('../HMMTraining/Models/' + cfg.MODEL_TO_USE + '.pkl', 'rb') as f:
+                model = pickle.load(f)
+        else:
+            with open('HMMTraining/Models/' + cfg.MODEL_TO_USE + '.pkl', 'rb') as f:
+                model = pickle.load(f)
 
     for i in range(len(dataframes[cfg.SYMBOLS_TO_BE_TRADED[0]])):
         if i > 1:
