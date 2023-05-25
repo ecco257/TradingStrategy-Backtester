@@ -42,5 +42,5 @@ SYMBOL_TO_TRAIN = 'SPY' # the symbol to train the HMM on
 NUMBER_OF_HIDDEN_STATES = 4 # the number of hidden states to use for the HMM
 COVARIANCE_TYPE = 'full' # the type of covariance to use for the HMM, valid options are 'full', 'tied', 'diag', 'spherical'
 NUMBER_OF_TRAINING_ITERATIONS = 1000 # the number of iterations to use when training the HMM
-MODEL_TO_USE = 'RegimeDetectionStrategy_SPY_4' # the name of the HMM stored in Models to use for backtesting (without the .pkl extension). Leave as None to use no HMM
+MODEL_TO_USE = None # the name of the HMM stored in Models to use for backtesting (without the .pkl extension). Leave as None to use no HMM
 #=======================================================================================================================
