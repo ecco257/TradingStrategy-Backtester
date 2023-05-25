@@ -13,10 +13,16 @@ TO_DATE_MS = TO_DATE_UNIX * 1000
 FROM_DATE_MS = TO_DATE_MS - int(cfg.DELTA_TIME * 24 * 60 * 60 * 1000)
 
 def unix_to_date(unix):
-    return dt.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S')
+    if '/' in cfg.SYMBOLS_TO_BE_TRADED[0]:
+        return dt.fromtimestamp(unix/1000).strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        return dt.fromtimestamp(unix).strftime('%Y-%m-%d %H:%M:%S')
 
 def unix_to_date_time(unix):
-    return dt.fromtimestamp(unix)
+    if '/' in cfg.SYMBOLS_TO_BE_TRADED[0]:
+        return dt.fromtimestamp(unix/1000)
+    else:
+        return dt.fromtimestamp(unix)
 
 def date_to_unix(date):
     if type(date) == str:
