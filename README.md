@@ -64,7 +64,7 @@ Trading Strategy backtester and hyperparameter optimizer for crypto and stocks (
 
 ## TODO
 
-* Implement forward testing, probably through a discord bot which makes a notification when trades are made, etc.
+* Add an optional numerical (or maybe even text-based) sentiment component to the State
 
 ## Authors
 
