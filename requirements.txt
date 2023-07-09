@@ -4,7 +4,6 @@ pandas==1.5.3
 streamlit==1.22.0
 plotly==5.14.1
 ccxt==3.0.97
-plotly==5.14.1
 optuna==3.1.0
 ta==0.10.2
 hmmlearn==0.3.0
