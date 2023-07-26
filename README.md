@@ -1,6 +1,6 @@
 # TradingStrategy-Backtester
 
-Trading Strategy backtester and hyperparameter optimizer for crypto and stocks (soon to add regime detection training and forward testing). 
+Trading Strategy backtester, hyperparameter optimizer, and hidden markov model tester for crypto and stocks. Soon to add sentiment analysis. 
 
 ## Getting Started
 
