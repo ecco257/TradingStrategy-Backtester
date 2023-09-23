@@ -1,30 +1,29 @@
 import Configuration.Config as cfg
-from typing import Union
+from typing import Union    
 
-class LimitOrder:
-    def __init__(self, security: str, timestamp: int, quantity: float, price: float):
-        self.security = security
-        self.timestamp = timestamp
-        self.quantity = quantity
-        self.price = price
-
-    def __str__(self):
-        return "Limit Order for " + str(self.quantity) + " " + self.security + " at " + str(self.price) + " on timestamp " + str(self.timestamp)
-    
-    def __repr__(self):
-        return "LimitOrder(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ", " + str(self.price) + ")"
-    
-class MarketOrder:
+class Order:
     def __init__(self, security: str, timestamp: int, quantity: float):
         self.security = security
         self.timestamp = timestamp
         self.quantity = quantity
 
     def __str__(self):
-        return "Market Order for " + str(self.quantity) + " " + self.security + " on timestamp " + str(self.timestamp)
-    
+        return f"{self.__class__.__name__} for {self.quantity} {self.security} on timestamp {self.timestamp}"
+
     def __repr__(self):
-        return "MarketOrder(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ")"
+        return f"{self.__class__.__name__}({self.security}, {self.timestamp}, {self.quantity})"
+
+class LimitOrder(Order):
+    def __init__(self, security: str, timestamp: int, quantity: float, price: float):
+        super().__init__(security, timestamp, quantity)
+        self.price = price
+
+    def __str__(self):
+        return f"{super().__str__()} at {self.price}"
+
+class MarketOrder(Order):
+    def __init__(self, security: str, timestamp: int, quantity: float):
+        super().__init__(security, timestamp, quantity)
     
 class Trade:
     def __init__(self, security: str, timestamp: int, quantity: float, price: float, is_taker: bool = True, filled: Union[int, None] = None):
