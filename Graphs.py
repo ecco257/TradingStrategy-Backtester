@@ -61,5 +61,19 @@ def returns(strat_data: pd.DataFrame, result_data: Dict[str, pd.DataFrame]) -> g
     fig.update_layout(title_text='Returns')
     return fig
 
+def drawdown(strat_data: pd.DataFrame, result_data: Dict[str, pd.DataFrame]) -> go.Figure:
+    # calculate drawdowns
+    equity_curve = result_data[cfg.SYMBOLS_TO_BE_TRADED[0]]['pnl']
+    running_max = np.maximum.accumulate(equity_curve)
+    drawdown = (equity_curve - running_max) / running_max
+
+    fig = go.Figure(data=go.Scatter(
+        x=[dr.unix_to_date_time(x) for x in strat_data['timestamp']],
+        y=drawdown,
+        mode='lines'
+    ))
+    fig.update_layout(title_text='Drawdown')
+    return fig
+
 # here you can choose which graphs you want to display by adding the function(s) to this list
 graphs = []
