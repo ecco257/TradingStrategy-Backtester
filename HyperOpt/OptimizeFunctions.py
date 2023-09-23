@@ -39,8 +39,38 @@ def byNumTrades(df: pd.DataFrame) -> float:
             num_trades += 1
     return num_trades
 
+# counts the number of times at which the pnl vs the starting capital is greater than the current close vs the first close
+def beatBenchmarkRate(df: pd.DataFrame) -> int:
+    starting_capital = df['pnl'].iloc[0]
+    assert starting_capital != 0
+    benchmark_returns = []
+    strat_returns = []
+    for i in range(len(df['c'])):
+        benchmark_returns.append(df['c'].iloc[i] / df['c'].iloc[0] - 1)
+        strat_returns.append(df['pnl'].iloc[i] / starting_capital - 1)
+
+    num_times_better = 0
+    for i in range(len(benchmark_returns)):
+        if strat_returns[i] > benchmark_returns[i]:
+            num_times_better += 1
+    return num_times_better
+
+# counts the amount in percent that the pnl vs the starting capital is greater than the current close vs the first close
+# essentially integrates the difference between the two curves
+def beatBenchmarkAmount(df: pd.DataFrame) -> int:
+    starting_capital = df['pnl'].iloc[0]
+    assert starting_capital != 0
+    benchmark_returns = []
+    strat_returns = []
+    for i in range(len(df['c'])):
+        benchmark_returns.append(df['c'].iloc[i] / df['c'].iloc[0] - 1)
+        strat_returns.append(df['pnl'].iloc[i] / starting_capital - 1)
+
+    amount_better = 0
+    for i in range(len(benchmark_returns)):
+        amount_better += strat_returns[i] - benchmark_returns[i]
+    return amount_better
+
 optimization_functions = [ 
-    byProfit, 
-    byMinDrawdown, 
-    byNumTrades, 
+    beatBenchmarkAmount,
 ]
