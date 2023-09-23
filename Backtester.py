@@ -63,6 +63,7 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
         dataframes[symbol]['orders'] = [[] for i in range(len(dataframes[symbol]))]
         dataframes[symbol]['trades'] = [[] for i in range(len(dataframes[symbol]))]
         dataframes[symbol]['position'] = [0 for i in range(len(dataframes[symbol]))]
+        dataframes[symbol]['cash'] = [cfg.INITIAL_CAPITALS[symbol] for i in range(len(dataframes[symbol]))]
         dataframes[symbol]['pnl'] = [cfg.INITIAL_CAPITALS[symbol] for i in range(len(dataframes[symbol]))]
 
     strat_data = pd.DataFrame()
@@ -84,10 +85,13 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
                 # update the position
                 dataframes[symbol].loc[i, 'position'] = dataframes[symbol].loc[i-1, 'position']
 
+                # update the cash
+                dataframes[symbol].loc[i, 'cash'] = dataframes[symbol].loc[i-1, 'cash']
+
                 # update the PnL
-                dataframes[symbol].loc[i, 'pnl'] = dataframes[symbol].loc[i-1, 'pnl'] + dataframes[symbol].loc[i, 'position'] * (dataframes[symbol].loc[i, 'c'] - dataframes[symbol].loc[i-1, 'c'])
-            
-        states = {symbol: State(symbol, dataframes[symbol].loc[i, 't'], dataframes[symbol].loc[i, 'position'], dataframes[symbol].loc[i, 'o'], dataframes[symbol].loc[i, 'h'], dataframes[symbol].loc[i, 'l'], dataframes[symbol].loc[i, 'c'], dataframes[symbol].loc[i, 'v'], dataframes[symbol].loc[i, 'pnl'], None) for symbol in dataframes}
+                dataframes[symbol].loc[i, 'pnl'] = dataframes[symbol].loc[i, 'cash'] + dataframes[symbol].loc[i, 'position'] * dataframes[symbol].loc[i, 'c']
+
+        states = {symbol: State(symbol, dataframes[symbol].loc[i, 't'], dataframes[symbol].loc[i, 'position'], dataframes[symbol].loc[i, 'o'], dataframes[symbol].loc[i, 'h'], dataframes[symbol].loc[i, 'l'], dataframes[symbol].loc[i, 'c'], dataframes[symbol].loc[i, 'v'], dataframes[symbol].loc[i, 'cash'], dataframes[symbol].loc[i, 'pnl'], None) for symbol in dataframes}
 
         if model is not None and i > 1 and 'HMMTraining' not in sys.path[0]:
 
@@ -156,7 +160,16 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
                 if trade.is_taker:
                     if log_messages:
                         logger.info("Market order filled (or immediately filled limit order): " + str(trade))
-                    dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.TAKER_FEE)
+                    # if it is a buy order, we need to add the position minus fees and subtract the cash
+                    if trade.quantity > 0:
+                        dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.TAKER_FEE)
+                        dataframes[symbol].loc[i, 'cash'] -= trade.quantity * trade.price
+                    # if it is a sell order, we need to subtract the full position and add the cash minus fees
+                    elif trade.quantity < 0:
+                        dataframes[symbol].loc[i, 'position'] += trade.quantity
+                        dataframes[symbol].loc[i, 'cash'] -= trade.quantity * trade.price * (1 - cfg.TAKER_FEE)
+                    else:
+                        raise Exception("Invalid trade quantity: " + str(trade))
             for trade_list in dataframes[symbol]['trades'][:i]:
                 for trade in trade_list:
                     if not trade.is_taker and abs(trade.filled) < abs(trade.quantity) and ((trade.quantity < 0 and dataframes[symbol]['c'][i] >= trade.price) or (trade.quantity > 0 and dataframes[symbol]['c'][i] <= trade.price)):
@@ -164,16 +177,24 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
                             if not ((trade.quantity < 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMITS[symbol]) or \
                             (trade.quantity > 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMITS[symbol])):
                                 trade.filled = trade.quantity
-                                dataframes[symbol].loc[i, 'position'] += (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE)
+                                if trade.quantity > 0:
+                                    dataframes[symbol].loc[i, 'position'] += (trade.filled) * (1 - cfg.MAKER_FEE)
+                                    dataframes[symbol].loc[i, 'cash'] -= (trade.filled) * trade.price
+                                else:
+                                    dataframes[symbol].loc[i, 'position'] += (trade.filled)
+                                    dataframes[symbol].loc[i, 'cash'] -= (trade.filled) * trade.price * (1 - cfg.MAKER_FEE)
                                 if log_messages:
                                     logger.info("Limit order filled: " + str(trade))
                             elif trade.quantity < 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) < -cfg.POSITION_LIMITS[symbol] and dataframes[symbol]['position'][i] > -cfg.POSITION_LIMITS[symbol]:
                                 trade.filled = -cfg.POSITION_LIMITS[symbol] - dataframes[symbol]['position'][i]
+                                dataframes[symbol].loc[i, 'cash'] -= trade.filled * trade.price * (1 - cfg.MAKER_FEE)
                                 dataframes[symbol].loc[i, 'position'] = -cfg.POSITION_LIMITS[symbol]
+
                                 if log_messages:
                                     logger.warning("Limit order partially filled: " + str(trade))
                             elif trade.quantity > 0 and dataframes[symbol]['position'][i] + (trade.quantity - trade.filled) * (1 - cfg.MAKER_FEE) > cfg.POSITION_LIMITS[symbol] and dataframes[symbol]['position'][i] < cfg.POSITION_LIMITS[symbol]:
                                 trade.filled = cfg.POSITION_LIMITS[symbol] - dataframes[symbol]['position'][i]
+                                dataframes[symbol].loc[i, 'cash'] -= trade.filled * trade.price * (1 + cfg.MAKER_FEE)
                                 dataframes[symbol].loc[i, 'position'] = cfg.POSITION_LIMITS[symbol]
                                 if log_messages:
                                     logger.warning("Limit order partially filled: " + str(trade))
@@ -182,7 +203,12 @@ def getResults(strategy_name: str, log_messages: bool = False, price_data: Dict[
                                     logger.warning("Limit order not filled, exceeds position limit: " + str(trade))
                         elif cfg.POSITION_LIMITS[symbol] <= 0:
                             trade.filled = trade.quantity
-                            dataframes[symbol].loc[i, 'position'] += trade.quantity * (1 - cfg.MAKER_FEE)
+                            if trade.quantity > 0:
+                                dataframes[symbol].loc[i, 'position'] += (trade.filled) * (1 - cfg.MAKER_FEE)
+                                dataframes[symbol].loc[i, 'cash'] -= (trade.filled) * trade.price
+                            else:
+                                dataframes[symbol].loc[i, 'position'] += (trade.filled)
+                                dataframes[symbol].loc[i, 'cash'] -= (trade.filled) * trade.price * (1 - cfg.MAKER_FEE)
                             if log_messages:
                                 logger.info("Limit order filled: " + str(trade))
     return dataframes, strat_data
@@ -393,7 +419,6 @@ if __name__ == "__main__":
             if symbol in cfg.SYMBOLS_TO_BE_TRADED:
                 plotResults(result_dfs[symbol], symbol)
                 st.write('number of trades: ' + str(byNumTrades(result_dfs[symbol])))
-        st.write(strat_data)
         for graph_fn in graphs:
             # each graph function returns a plotly figure, so we can just pass it to streamlit
             st.plotly_chart(graph_fn(strat_data, result_dfs))

@@ -42,7 +42,7 @@ class Trade:
         return "Trade(" + self.security + ", " + str(self.timestamp) + ", " + str(self.quantity) + ", " + str(self.price) + ")"
     
 class State:
-    def __init__(self, security: str, timestamp: int, position: float, open: float, high: float, low: float, close: float, volume: float, pnl: float, hidden_state: int = None):
+    def __init__(self, security: str, timestamp: int, position: float, open: float, high: float, low: float, close: float, volume: float, cash: float, pnl: float, hidden_state: int = None):
         self.security = security
         self.timestamp = timestamp
         self.position = position
@@ -51,6 +51,7 @@ class State:
         self.low = low
         self.close = close
         self.volume = volume
+        self.cash = cash
         self.pnl = pnl
         self.hidden_state = hidden_state
 
