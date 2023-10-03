@@ -17,6 +17,7 @@ from Graphs import graphs
 import pickle
 from HMMTraining.TrainingMethods import training_methods
 import numpy as np
+from pymexc.spot import HTTP
 
 # Get OHLCV data
 def getOHLCV(ticker: str) -> pd.DataFrame:
@@ -323,9 +324,36 @@ def downloadCryptoData(exchange: ccxt.Exchange, pair: str) -> pd.DataFrame:
         from_date_ms = min(missing_data)
         to_date_ms = max(missing_data)
 
-    exchange.load_markets()
+    old_len = len(df)
 
-    if exchange.has['fetchOHLCV']:
+    if exchange.id == 'kucoin':
+        exchange.load_markets()
+
+        if exchange.has['fetchOHLCV']:
+            time_range = to_date_ms - from_date_ms
+            interval_ms = getIntervalMS()
+            print('Fetching data in chunks...')
+            new_from_date_ms = roundToIntervalMS(from_date_ms)
+            while new_from_date_ms < to_date_ms:
+                print('progress: ' + str(round((new_from_date_ms - from_date_ms) / time_range * 100, 2)) + '%')
+                time.sleep(exchange.rateLimit / 1000)
+                try:
+                    ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms), columns=['t', 'o', 'h', 'l', 'c', 'v'])
+                except:
+                    print('rate limit probably exceeded, waiting 3 seconds')
+                    time.sleep(3)
+                    ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms), columns=['t', 'o', 'h', 'l', 'c', 'v'])
+                df = pd.concat([df, ohlcv], ignore_index=True)
+                new_from_date_ms = df.loc[len(df) - 1, 't'] + interval_ms
+            # remove duplicates
+            df = df.drop_duplicates(subset=['t'])
+            # sort by time
+            df = df.sort_values(by=['t'])
+        else:
+            raise Exception('fetchOHLCV not supported by exchange')
+    elif exchange.id == 'mexc':
+        mexc_client = HTTP()
+        pair = pair.replace('/', '')
         time_range = to_date_ms - from_date_ms
         interval_ms = getIntervalMS()
         print('Fetching data in chunks...')
@@ -334,19 +362,25 @@ def downloadCryptoData(exchange: ccxt.Exchange, pair: str) -> pd.DataFrame:
             print('progress: ' + str(round((new_from_date_ms - from_date_ms) / time_range * 100, 2)) + '%')
             time.sleep(exchange.rateLimit / 1000)
             try:
-                ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms), columns=['t', 'o', 'h', 'l', 'c', 'v'])
+                ohlcv = pd.DataFrame(mexc_client.klines(pair, cfg.CRYPTO_INTERVAL, new_from_date_ms, new_from_date_ms + interval_ms * 500), columns=['t', 'o', 'h', 'l', 'c', 'v', 'tc', 'qv'])
             except:
                 print('rate limit probably exceeded, waiting 3 seconds')
                 time.sleep(3)
-                ohlcv = pd.DataFrame(exchange.fetch_ohlcv(pair, cfg.CRYPTO_INTERVAL, since=new_from_date_ms), columns=['t', 'o', 'h', 'l', 'c', 'v'])
+                ohlcv = pd.DataFrame(mexc_client.klines(pair, cfg.CRYPTO_INTERVAL, new_from_date_ms, new_from_date_ms + interval_ms * 500), columns=['t', 'o', 'h', 'l', 'c', 'v', 'tc', 'qv'])
             df = pd.concat([df, ohlcv], ignore_index=True)
             new_from_date_ms = df.loc[len(df) - 1, 't'] + interval_ms
         # remove duplicates
         df = df.drop_duplicates(subset=['t'])
         # sort by time
         df = df.sort_values(by=['t'])
+        # remove the last two columns
+        df = df.drop(columns=['tc', 'qv'])
     else:
-        raise Exception('fetchOHLCV not supported by exchange')
+        raise Exception('Exchange not supported')
+
+    print('progress: 100%')
+    new_len = len(df)
+    print('Downloaded ' + str(new_len - old_len) + ' rows of data')
 
     return df
 
@@ -395,8 +429,9 @@ if __name__ == "__main__":
         print('Usage: python3 Backtester.py [ download | test ]')
         exit(1)
 
-    # Set up the crypto API
-    exchange = ccxt.kucoin({ 'enableRateLimit': True })
+    # Set up the crypto API using cfg.CRYPTO_EXCHANGE
+    exchange_class = getattr(ccxt, cfg.CRYPTO_EXCHANGE)
+    exchange = exchange_class()
 
     if sys.argv[1] == 'download':
         for symbol in cfg.SYMBOLS_TO_BE_TRADED:
