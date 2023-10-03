@@ -11,6 +11,7 @@ load_dotenv()
 # For example, create a file called ".env" and put API_KEY=your_api_key in it
 API_KEY = os.getenv('API_KEY')
 CRYPTO_EXCHANGE = 'kucoin' # the name of the crypto exchange to use for trading, currently supported options are 'mexc' and 'kucoin'
+DELTA_TIME = 40
 TO_DATE_LESS = 0
 INTERVAL = 'D' # the amount of time in one candle, valid options are '1' '5' '15' '30' '60' 'D' 'W' 'M'
 CRYPTO_INTERVAL = '1h' # the amount of time in one candle for crypto (ccxt); These are the intervals for kucoin exchange, which is currently in use: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 1w
